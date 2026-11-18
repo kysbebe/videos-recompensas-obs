@@ -1,0 +1,3 @@
+# Tus videos no se suben al repositorio
+videos/*
+!videos/LEEME.txt

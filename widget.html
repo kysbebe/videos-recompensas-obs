@@ -1,0 +1,297 @@
+<!doctype html>
+<!--
+  Videos de recompensas · widget para OBS
+  Hecho por kysbebe · https://github.com/kysbebe
+  Licencia: ver LICENSE.md (uso personal gratuito; prohibido vender, redistribuir
+  versiones modificadas o quitar esta firma).
+-->
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="author" content="kysbebe">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' file: 'unsafe-inline'; style-src 'unsafe-inline'; media-src 'self' file: blob:; connect-src ws: wss:; base-uri 'none'; form-action 'none'">
+<title>Videos de recompensas · kysbebe</title>
+<style>
+  html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: transparent; }
+  .clip {
+    position: absolute; pointer-events: none;
+    transform: scale(0.2); opacity: 0;
+    transition: transform .35s cubic-bezier(.2,1.6,.4,1), opacity .25s ease;
+  }
+  .clip.visible { transform: scale(1); opacity: 1; }
+  .clip.saliendo { transform: scale(0.6); opacity: 0; transition: transform .3s ease-in, opacity .3s ease-in; }
+  .clip video, .clip canvas { display: block; width: 100%; height: 100%; }
+  #estado {
+    position: absolute; left: 12px; bottom: 12px; display: none;
+    font: 600 18px/1.3 system-ui, sans-serif; color: #fff;
+    background: rgba(0,0,0,.65); padding: 8px 12px; border-radius: 8px;
+  }
+  body.debug #estado, #estado.aviso { display: block; }
+</style>
+</head>
+<body>
+<div id="estado">Conectando…</div>
+<script src="config.js"></script>
+<script>
+(() => {
+  let C, DEF, lista, porNombre, apagados, MAX_A_LA_VEZ = 4;
+  const ZONAS = {
+    'arriba-izquierda': [0, 0],   'arriba': [0.5, 0],   'arriba-derecha': [1, 0],
+    'izquierda':        [0, 0.5], 'centro': [0.5, 0.5], 'derecha':        [1, 0.5],
+    'abajo-izquierda':  [0, 1],   'abajo':  [0.5, 1],   'abajo-derecha':  [1, 1],
+  };
+  // ---------- Validación: nunca se confía en lo que venga en config.js ----------
+  const num = (x, min, max, def) => { x = Number(x); return Number.isFinite(x) ? Math.min(max, Math.max(min, x)) : def; };
+  // Solo nombres de archivo simples dentro de "videos/" (sin carpetas, sin "..")
+  const archivoSeguro = (a) => typeof a === 'string' && /^[^\\/:*?"<>|]{1,120}\.(mp4|webm|mov)$/i.test(a) && !a.startsWith('.') ? a : '';
+  function limpiar(v, base) {
+    v = Object.assign({}, base, v && typeof v === 'object' ? v : {});
+    const lugares = (Array.isArray(v.lugares) ? v.lugares : []).filter(z => z === 'azar' || z in ZONAS);
+    const eMin = num(v.escalaMin, 0.1, 5, 0.8), eMax = num(v.escalaMax, 0.1, 5, 1.3);
+    return {
+      nombre: String(v.nombre || '').slice(0, 100),
+      archivo: archivoSeguro(v.archivo),
+      activo: v.activo !== false,
+      ancho: num(v.ancho, 20, 3840, 400),
+      escalaMin: Math.min(eMin, eMax), escalaMax: Math.max(eMin, eMax),
+      lugares: lugares.length ? lugares : ['azar'],
+      volumen: num(v.volumen, 0, 1, 0.8),
+      fondoVerde: v.fondoVerde === true,
+    };
+  }
+  function aplicarConfig(cfg) {
+    C = cfg && typeof cfg === 'object' ? cfg : {};
+    DEF = limpiar(C.porDefecto, { ancho: 400, escalaMin: 0.8, escalaMax: 1.3, lugares: ['azar'], volumen: 0.8, fondoVerde: false });
+    MAX_A_LA_VEZ = num(C.maxALaVez, 1, 20, 4);
+    lista = (Array.isArray(C.videos) ? C.videos : []).filter(v => v && v.activo !== false).map(v => limpiar(v, DEF));
+    porNombre = new Map(lista.map(v => [normal(v.nombre), v]));
+    apagados = new Set((Array.isArray(C.videos) ? C.videos : []).filter(v => v && v.activo === false).map(v => normal(v.nombre)));
+  }
+  const params = new URLSearchParams(location.search);
+  if (params.has('debug')) document.body.classList.add('debug');
+  const estado = document.getElementById('estado');
+  // Cada mensaje se ve 8 segundos (así en OBS ves si conectó) y luego se oculta.
+  // Tecla D en "Interactuar" = dejarlo siempre visible / ocultarlo.
+  let ocultarAviso;
+  const log = (t) => {
+    estado.textContent = t; console.log('[recompensas]', t);
+    estado.classList.add('aviso'); clearTimeout(ocultarAviso);
+    ocultarAviso = setTimeout(() => estado.classList.remove('aviso'), 8000);
+  };
+
+  // "Duck Dance!" -> "duckdance"
+  const normal = (s) => String(s || '').toLowerCase().normalize('NFD')
+    .replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]/g, '');
+
+  aplicarConfig(window.CONFIG);
+
+  // ---------- Recargar config.js solo (lo guarda configurar.html) ----------
+  // Cada 2 s vuelve a leer config.js: los cambios se aplican sin tocar OBS,
+  // y si el panel pidió una prueba, se reproduce aquí.
+  let ultimaPrueba = C.prueba && C.prueba.t, ultimaConexion = null;
+  function recargar() {
+    const tag = document.createElement('script');
+    tag.src = 'config.js?t=' + Date.now();
+    tag.onload = () => {
+      tag.remove();
+      const nuevo = window.CONFIG || {};
+      const conexion = [nuevo.streamerbotHost, nuevo.streamerbotPuerto, nuevo.streamerbotClave].join('|');
+      aplicarConfig(nuevo);
+      if (ultimaConexion !== null && conexion !== ultimaConexion && wsActual) wsActual.close();
+      ultimaConexion = conexion;
+      if (nuevo.prueba && nuevo.prueba.t && nuevo.prueba.t !== ultimaPrueba) {
+        ultimaPrueba = nuevo.prueba.t;
+        if (Date.now() - nuevo.prueba.t < 60000) probar(nuevo.prueba.nombre);
+      }
+    };
+    tag.onerror = () => tag.remove();
+    document.head.appendChild(tag);
+  }
+  setInterval(recargar, 2000);
+
+  // ---------- Posiciones ----------
+  const azar = (a, b) => a + Math.random() * (b - a);
+  const elegir = (arr) => arr[Math.floor(Math.random() * arr.length)];
+
+  function posicion(lugar, w, h) {
+    const W = window.innerWidth, H = window.innerHeight, m = 30; // margen
+    const libreX = Math.max(0, W - w - 2 * m), libreY = Math.max(0, H - h - 2 * m);
+    let fx, fy;
+    if (ZONAS[lugar]) {
+      // Punto de la zona + un poco de variación para que no salga siempre igual
+      [fx, fy] = ZONAS[lugar];
+      fx = Math.min(1, Math.max(0, fx + azar(-0.08, 0.08)));
+      fy = Math.min(1, Math.max(0, fy + azar(-0.08, 0.08)));
+    } else {
+      fx = Math.random(); fy = Math.random();
+    }
+    return [m + fx * libreX, m + fy * libreY];
+  }
+
+  // ---------- Quitar fondo verde ----------
+  function chroma(video, canvas) {
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    let vivo = true;
+    const paso = () => {
+      if (!vivo || video.ended) return;
+      try {
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const img = ctx.getImageData(0, 0, canvas.width, canvas.height), d = img.data;
+        for (let i = 0; i < d.length; i += 4) {
+          const r = d[i], g = d[i + 1], b = d[i + 2];
+          const exceso = g - Math.max(r, b);          // cuánto "más verde" es
+          if (exceso > 60) d[i + 3] = 0;
+          else if (exceso > 25) { d[i + 3] = 255 * (60 - exceso) / 35; d[i + 1] = Math.max(r, b); }
+        }
+        ctx.putImageData(img, 0, 0);
+      } catch (e) { // si el navegador no deja leer el video, se muestra tal cual
+        vivo = false; canvas.replaceWith(video); return;
+      }
+      video.requestVideoFrameCallback ? video.requestVideoFrameCallback(paso) : requestAnimationFrame(paso);
+    };
+    paso();
+    return () => { vivo = false; };
+  }
+
+  // ---------- Reproducir ----------
+  let ocupado = false, activos = 0;
+  const cola = [];
+
+  function reproducir(v) {
+    // Tope de videos a la vez (evita que un spam de canjes llene la pantalla);
+    // los que sobran esperan en una cola de máximo 30.
+    if ((C.siCoinciden === 'cola' && ocupado) || activos >= MAX_A_LA_VEZ) { if (cola.length < 30) cola.push(v); return; }
+    ocupado = true; activos++;
+    let terminado = false;
+    const video = document.createElement('video');
+    // Si no se indicó archivo, se busca en la carpeta "videos" por el nombre de la recompensa
+    const candidatos = v.archivo ? [encodeURIComponent(v.archivo)] : ['mp4', 'webm', 'mov'].map(ext => v.clave + '.' + ext);
+    let intento = 0;
+    video.src = 'videos/' + candidatos[0];
+    video.volume = Math.min(1, Math.max(0, v.volumen));
+    video.playsInline = true;
+    const caja = document.createElement('div');
+    caja.className = 'clip';
+    let parar = null, mostrado = false;
+
+    const terminar = () => {
+      if (terminado) return; terminado = true;
+      if (parar) parar();
+      caja.classList.remove('visible'); caja.classList.add('saliendo');
+      setTimeout(() => {
+        caja.remove(); video.removeAttribute('src');
+        activos--;
+        if (activos <= 0) { activos = 0; ocupado = false; }
+        if (cola.length && (C.siCoinciden !== 'cola' || !ocupado)) reproducir(cola.shift());
+      }, 350);
+    };
+
+    video.addEventListener('loadedmetadata', () => {
+      if (mostrado) return; mostrado = true;
+      const w = v.ancho * azar(v.escalaMin, v.escalaMax) * (window.innerWidth / 1920);
+      const h = w * (video.videoHeight / video.videoWidth || 9 / 16);
+      const [x, y] = posicion(elegir(v.lugares && v.lugares.length ? v.lugares : ['azar']), w, h);
+      Object.assign(caja.style, { left: x + 'px', top: y + 'px', width: w + 'px', height: h + 'px' });
+
+      if (v.fondoVerde) {
+        const canvas = document.createElement('canvas');
+        const proc = Math.min(video.videoWidth, 640); // procesar a 640 px como mucho: va fluido
+        canvas.width = proc; canvas.height = Math.round(proc * video.videoHeight / video.videoWidth);
+        caja.appendChild(canvas);
+        video.addEventListener('play', () => { parar = chroma(video, canvas); }, { once: true });
+      } else {
+        caja.appendChild(video);
+      }
+      document.body.appendChild(caja);
+      requestAnimationFrame(() => requestAnimationFrame(() => caja.classList.add('visible')));
+      video.play().catch(() => {
+        // Si el navegador no deja reproducir con sonido, se intenta sin sonido
+        video.muted = true;
+        video.play().catch(err => { log('No se pudo reproducir videos/' + candidatos[intento] + ': ' + err.message); terminar(); });
+      });
+    });
+    video.addEventListener('ended', terminar);
+    video.addEventListener('error', () => {
+      if (mostrado) { log('El video videos/' + candidatos[intento] + ' existe pero no se puede reproducir (¿formato HEVC/H.265? pásalo a H.264)'); terminar(); return; }
+      if (++intento < candidatos.length) { video.src = 'videos/' + candidatos[intento]; return; }
+      log('No hay video para "' + v.nombre + '" (busqué videos/' + candidatos.join(', videos/') + '). Si el archivo está, revisa el nombre o el formato (debe ser H.264, no HEVC)');
+      terminar();
+    });
+  }
+
+  function canje(titulo, usuario) {
+    if (!titulo) return;
+    titulo = String(titulo).slice(0, 100);
+    const clave = normal(titulo);
+    if (!clave) return;
+    if (apagados.has(clave)) { log('"' + titulo + '" está desactivado en el panel'); return; }
+    // Si la recompensa está en config.js usa sus ajustes; si no, valores por defecto
+    const v = Object.assign({ clave }, porNombre.get(clave) || Object.assign({}, DEF, { nombre: titulo, archivo: '' }));
+    log((usuario ? String(usuario).slice(0, 40) + ' canjeó ' : '') + titulo);
+    reproducir(v);
+  }
+  window.probar = (nombre) => {
+    nombre = nombre || (lista[0] && lista[0].nombre);
+    if (!nombre) { log('No hay videos apuntados en config.js para probar'); return; }
+    canje(nombre, 'prueba');
+  };
+
+  // ---------- Conexión con Streamer.bot ----------
+  async function sha256b64(texto) {
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(texto));
+    return btoa(String.fromCharCode(...new Uint8Array(buf)));
+  }
+
+  let wsActual = null;
+  function conectar() {
+    const url = 'ws://' + (C.streamerbotHost || '127.0.0.1') + ':' + (C.streamerbotPuerto || 8080) + '/';
+    log('Conectando a Streamer.bot (' + url + ')…');
+    let ws;
+    try { ws = wsActual = new WebSocket(url); } catch (e) { setTimeout(conectar, 5000); return; }
+    const suscribir = () => ws.send(JSON.stringify({
+      request: 'Subscribe', id: 'recompensas', events: { Twitch: ['RewardRedemption'] },
+    }));
+
+    ws.onmessage = async (ev) => {
+      let msg; try { msg = JSON.parse(ev.data); } catch { return; }
+      if (msg.request === 'Hello') {
+        if (msg.authentication) {
+          const { salt, challenge } = msg.authentication;
+          const secreto = await sha256b64((C.streamerbotClave || '') + salt);
+          ws.send(JSON.stringify({ request: 'Authenticate', id: 'auth', authentication: await sha256b64(secreto + challenge) }));
+        } else suscribir();
+        return;
+      }
+      if (msg.id === 'auth') {
+        if (msg.status === 'ok') suscribir();
+        else log('Streamer.bot rechazó la clave. Revisa streamerbotClave en config.js');
+        return;
+      }
+      if (msg.id === 'recompensas') { window.__sinConexion = false; log('Conectado a Streamer.bot. Esperando canjes…'); return; }
+      if (msg.event && msg.event.source === 'Twitch' && msg.event.type === 'RewardRedemption') {
+        const d = msg.data || {};
+        const titulo = (d.reward && d.reward.title) || d.rewardTitle || d.title;
+        canje(titulo, d.user_name || d.userName || d.user);
+      }
+    };
+    ws.onclose = () => {
+      // Solo avisa la primera vez, para no tapar la pantalla cada 5 s si Streamer.bot está cerrado
+      if (!window.__sinConexion) log('Sin conexión con Streamer.bot (' + url + '). ¿Está encendido su WebSocket Server? Reintentando…');
+      window.__sinConexion = true; setTimeout(conectar, 5000);
+    };
+  }
+
+  conectar();
+
+  // Pruebas: widget.html?probar=duckdance  o, en OBS > "Interactuar", teclas 1-9
+  if (params.get('probar')) setTimeout(() => probar(params.get('probar')), 800);
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'd' || e.key === 'D') { document.body.classList.toggle('debug'); return; }
+    if (e.key === 'p' || e.key === 'P') { log('Prueba: tecla P'); probar(); return; }
+    const n = parseInt(e.key, 10);
+    if (n >= 1 && lista[n - 1]) probar(lista[n - 1].nombre);
+  });
+})();
+</script>
+</body>
+</html>
