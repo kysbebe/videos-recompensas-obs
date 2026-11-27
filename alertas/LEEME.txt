@@ -1,0 +1,1 @@
+Poné acá los gifs, videos (.mp4, .webm) y sonidos (.mp3, .ogg, .wav) de tus alertas, o agregalos arrastrándolos a la sección Alertas del panel (configurar.html).

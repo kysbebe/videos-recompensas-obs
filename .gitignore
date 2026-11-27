@@ -1,3 +1,7 @@
 # Tus videos no se suben al repositorio
 videos/*
 !videos/LEEME.txt
+
+# Tus archivos de alertas tampoco
+alertas/*
+!alertas/LEEME.txt

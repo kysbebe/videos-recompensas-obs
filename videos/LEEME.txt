@@ -1,1 +1,1 @@
-Poné acá tus videos (.mp4 o .webm), o agregalos arrastrándolos al panel (configurar.html).
+Poné acá tus videos (.mp4, .webm), audios (.mp3, .ogg, .wav) e imágenes o gifs (.gif, .png, .webp), o agregalos arrastrándolos al panel (configurar.html).

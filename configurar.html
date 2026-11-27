@@ -1,6 +1,6 @@
 <!doctype html>
 <!--
-  Videos de recompensas · panel de configuración
+  Videos de recompensas v3 · panel de configuración
   Hecho por kysbebe · https://github.com/kysbebe
   Licencia: ver LICENSE.md (uso personal gratuito; prohibido vender, redistribuir
   versiones modificadas o quitar esta firma).
@@ -9,7 +9,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="author" content="kysbebe">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:; media-src blob:; connect-src ws: wss:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src data: blob: https://cdn.7tv.app https://static-cdn.jtvnw.net; media-src blob:; connect-src ws: wss: https://7tv.io; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Panel de recompensas · kysbebe</title>
 <style>
@@ -68,10 +68,28 @@
   .item { display: flex; gap: 10px; align-items: center; padding: 8px; border-radius: 10px; cursor: pointer; border: 1px solid transparent; }
   .item:hover { background: var(--panel2); }
   .item.sel { background: var(--panel2); border-color: var(--acento2); }
+  .item .mini { width: 72px; height: 48px; object-fit: cover; border-radius: 6px; background: #000; flex: none; display: flex; align-items: center; justify-content: center; font-size: 22px; }
+  .item img.mini { object-fit: contain; background: #0b0b0d; }
   .item video { width: 72px; height: 48px; object-fit: cover; border-radius: 6px; background: #000; flex: none; }
   .item .nom { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .item .arch { font-size: 12px; color: var(--suave); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .item.apagado { opacity: .45; }
+  .grupo { border-radius: 10px; border: 1px solid transparent; padding: 2px; }
+  .grupo.encima { border-color: var(--acento); background: rgba(242,167,195,.06); }
+  .gcab { display: flex; align-items: center; gap: 6px; padding: 6px 6px; cursor: pointer; border-radius: 8px; user-select: none; }
+  .gcab:hover { background: var(--panel2); }
+  .gcab .gnom { font-weight: 650; font-size: 14px; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .gcab .flecha { width: 14px; color: var(--suave); font-size: 11px; transition: transform .15s; }
+  .grupo.plegada .flecha { transform: rotate(-90deg); }
+  .gcab .gcant { font-size: 12px; color: var(--suave); background: var(--panel2); border-radius: 99px; padding: 1px 8px; }
+  .gcab button { padding: 2px 7px; font-size: 12px; border-color: transparent; background: transparent; color: var(--suave); visibility: hidden; }
+  .gcab:hover button { visibility: visible; }
+  .gcab button:hover { color: var(--texto); border-color: var(--borde); }
+  .gitems { display: flex; flex-direction: column; gap: 4px; padding-left: 10px; }
+  .grupo.plegada .gitems { display: none; }
+  .gvacia { font-size: 12px; color: var(--suave); padding: 6px 8px 8px; }
+  .item[draggable=true] { cursor: grab; }
+  #nuevaCarpeta { width: 100%; margin-top: 10px; border-style: dashed; color: var(--suave); }
   .item > div { min-width: 0; }
   #soltar { display: block; cursor: pointer; margin-top: 12px; border: 2px dashed var(--borde); border-radius: 10px; padding: 16px; text-align: center; color: var(--suave); font-size: 14px; }
   #soltar.encima, body.arrastrando #soltar { border-color: var(--acento); color: var(--acento); }
@@ -99,7 +117,14 @@
   #mMax { border: 1.5px dashed rgba(242,167,195,.55); }
   #mMin { border: 1.5px dotted rgba(255,255,255,.5); }
   #mVid { position: absolute; pointer-events: none; }
-  #mVid video { width: 100%; height: 100%; display: block; object-fit: fill; border-radius: 4px; }
+  #mVid video, #mVid img { width: 100%; height: 100%; display: block; object-fit: fill; border-radius: 4px; }
+  .nota { background: var(--panel2); border: 1px solid var(--borde); border-radius: 10px; padding: 14px; color: var(--suave); font-size: 14px; }
+  .tres { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  @media (max-width: 700px) { .tres { grid-template-columns: 1fr 1fr; } }
+  #emotes { display: flex; flex-wrap: wrap; gap: 6px; max-height: 190px; overflow: auto; margin-top: 8px; }
+  #emotes button { padding: 4px; width: 46px; height: 46px; display: flex; align-items: center; justify-content: center; }
+  #emotes img { max-width: 36px; max-height: 36px; }
+  .tipo { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--acento); margin-left: 6px; }
   .leyenda { display: flex; gap: 16px; font-size: 12px; color: var(--suave); margin-top: 8px; flex-wrap: wrap; }
   .chips { display: flex; gap: 6px; flex-wrap: wrap; }
   .chip { padding: 5px 11px; border-radius: 99px; font-size: 13px; }
@@ -111,6 +136,25 @@
   .dos { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
   #aviso { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--panel2); border: 1px solid var(--borde);
     padding: 10px 18px; border-radius: 10px; display: none; z-index: 10; max-width: 90vw; }
+  /* Alertas */
+  #aEditor { display: grid; grid-template-columns: 1fr 320px; gap: 20px; align-items: start; }
+  @media (max-width: 1200px) { #aEditor { grid-template-columns: 1fr; } }
+  #aPantalla { position: relative; width: 100%; aspect-ratio: 16 / 9; overflow: hidden; border-radius: 10px; border: 1px solid var(--borde);
+    background: repeating-conic-gradient(#2a2c33 0% 25%, #23252b 0% 50%) 0 0 / 28px 28px; }
+  #aLienzo { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; transform-origin: 0 0; }
+  #aTipos .chip { display: inline-flex; align-items: center; gap: 6px; }
+  #aTipos .chip i { width: 7px; height: 7px; border-radius: 50%; background: var(--ok); }
+  #aTipos .chip i.off { background: var(--suave); opacity: .5; }
+  #aSoltar { display: block; cursor: pointer; border: 2px dashed var(--borde); border-radius: 10px; padding: 12px; text-align: center; color: var(--suave); font-size: 13px; }
+  #aSoltar.encima { border-color: var(--acento); color: var(--acento); }
+  input[type=color] { width: 100%; height: 38px; padding: 3px; background: var(--bg); border: 1px solid var(--borde); border-radius: 8px; cursor: pointer; }
+  .alerta { position: absolute; display: flex; flex-direction: column; align-items: center; text-align: center; box-sizing: border-box; color: #fff; }
+  .alerta.lado { flex-direction: row; text-align: left; }
+  .alerta .amedia { flex: none; display: flex; justify-content: center; }
+  .alerta .amedia > * { display: block; width: auto; object-fit: contain; }
+  .alerta .atit { font-weight: 700; line-height: 1.15; overflow-wrap: anywhere; }
+  .alerta .amsj { font-weight: 400; font-size: .62em; line-height: 1.3; opacity: .88; margin-top: .4em; overflow-wrap: anywhere; }
+  .alerta .res { color: var(--res); }
   [hidden] { display: none !important; }
 </style>
 </head>
@@ -138,23 +182,24 @@
   <!-- Columna izquierda -->
   <div style="display:flex;flex-direction:column;gap:20px">
     <section class="caja">
-      <h2>Tus videos</h2>
+      <h2>Tus recompensas</h2>
       <div id="lista"></div>
-      <label id="soltar">Arrastrá videos aquí<br>o <u style="cursor:pointer">elegilos</u>
-        <input type="file" id="subir" accept="video/mp4,video/webm,video/quicktime,.mp4,.webm,.mov" multiple hidden>
+      <button id="nuevaCarpeta">+ Nueva carpeta</button>
+      <label id="soltar">Arrastrá videos, audios o gifs aquí<br>o <u style="cursor:pointer">elegilos</u>
+        <input type="file" id="subir" accept=".mp4,.webm,.mov,.mp3,.ogg,.wav,.m4a,.gif,.png,.webp,.jpg,.jpeg" multiple hidden>
       </label>
     </section>
 
     <section class="caja" id="canjesCaja">
       <h2>Últimos canjes recibidos</h2>
-      <div class="chips" id="canjes"><span class="vacio">Canjeá una recompensa en Twitch y aparece aquí. Hacé clic en su nombre para asignarla al video elegido.</span></div>
+      <div class="chips" id="canjes"><span class="vacio">Canjeá una recompensa en Twitch y aparece aquí. Hacé clic en su nombre para asignarla al archivo elegido.</span></div>
     </section>
   </div>
 
   <!-- Columna derecha -->
   <div style="display:flex;flex-direction:column;gap:20px">
     <section class="caja" id="editorCaja">
-      <div class="vacio" id="sinVideo">Agregá un video para empezar.</div>
+      <div class="vacio" id="sinVideo">Agregá un video, un audio o un gif para empezar.</div>
       <div id="editor" hidden>
         <div>
           <div class="fila">
@@ -163,10 +208,15 @@
             <div class="ayuda">Tiene que ser igual al título de la recompensa (mayúsculas, tildes, espacios y signos no importan).</div>
           </div>
           <div class="fila">
+            <label class="tit">Carpeta <span>también podés arrastrarla en la lista</span></label>
+            <select id="fGrupo"></select>
+          </div>
+          <div class="fila nota" id="notaAudio" hidden>🔊 Es un <b>audio</b>: no se ve en pantalla, solo se escucha. Elegí el volumen y, si querés, cortalo con la duración.</div>
+          <div class="fila" id="bloqueVista">
             <label class="tit">¿Dónde puede aparecer? <span>hacé clic en las zonas</span></label>
             <div id="pantalla">
               <div id="mMax" class="marco"></div>
-              <div id="mVid"><video id="vPrev" muted loop playsinline></video></div>
+              <div id="mVid"><video id="vPrev" muted loop playsinline></video><img id="iPrev" alt="" hidden></div>
               <div id="mMin" class="marco"></div>
               <div id="zonas"></div>
             </div>
@@ -181,6 +231,7 @@
           </div>
         </div>
         <div>
+          <div id="bloqueTam">
           <div class="fila">
             <label class="tit">Tamaño normal <b id="tAncho"></b></label>
             <input type="range" id="fAncho" min="80" max="1920" step="10">
@@ -195,11 +246,22 @@
             <input type="range" id="fMax" min="100" max="250" step="5">
             <div class="ayuda">Cada vez sale con un tamaño al azar entre estos dos.</div>
           </div>
-          <div class="fila">
+          </div>
+          <div class="fila" id="filaSonido">
+            <label class="tit">Sonido del gif o imagen</label>
+            <select id="fSonido"></select>
+            <div class="ayuda">Elegí un audio de tu lista para que suene junto con la imagen.</div>
+          </div>
+          <div class="fila" id="filaVol">
             <label class="tit">Volumen <b id="tVol"></b></label>
             <input type="range" id="fVol" min="0" max="100" step="5">
           </div>
           <div class="fila">
+            <label class="tit">Duración <b id="tDur"></b></label>
+            <input type="range" id="fDur" min="0" max="60" step="1">
+            <div class="ayuda" id="aDur"></div>
+          </div>
+          <div class="fila" id="filaVerde">
             <label class="check"><input type="checkbox" id="fVerde"> Quitar fondo verde</label>
           </div>
           <div class="fila">
@@ -207,10 +269,140 @@
           </div>
           <div class="botones">
             <button class="principal" id="probar">▶ Probar en OBS</button>
-            <button class="peligro" id="borrar">Borrar video</button>
+            <button class="peligro" id="borrar">Borrar archivo</button>
           </div>
           <div class="ayuda" style="margin-top:8px">“Probar” lo hace aparecer en OBS sin canjear (OBS tiene que estar abierto).</div>
         </div>
+      </div>
+    </section>
+
+    <section class="caja" id="alertasCaja">
+      <h2>Alertas</h2>
+      <div class="fila">
+        <label class="check"><input type="checkbox" id="aActiva"> Activadas: seguidores, subs, bits, raids y donaciones aparecen en OBS</label>
+      </div>
+      <div class="chips" id="aTipos" style="margin-bottom:14px"></div>
+      <div id="aEditor">
+        <div>
+          <div id="aPantalla"><div id="aLienzo"></div></div>
+          <div class="botones" style="margin-top:10px">
+            <button class="principal" id="aProbar">▶ Probar en OBS</button>
+            <button id="aVer">Ver animación</button>
+          </div>
+          <div class="ayuda" style="margin-top:8px">La vista previa usa un nombre de ejemplo. “Probar en OBS” la hace salir en OBS sin esperar un evento real.</div>
+        </div>
+        <div>
+          <div class="fila"><label class="check"><input type="checkbox" id="aTipoActiva"> <span id="aTipoNombre">Esta alerta activada</span></label></div>
+          <div class="fila">
+            <label class="tit">Texto</label>
+            <input type="text" id="aTexto" maxlength="200" autocomplete="off">
+            <div class="ayuda" id="aVars"></div>
+          </div>
+          <div class="fila" id="aFilaMsj">
+            <label class="check"><input type="checkbox" id="aMsj"> Mostrar el mensaje que escribieron</label>
+            <label class="check" style="margin-top:6px"><input type="checkbox" id="aLeer"> Leer el mensaje en voz (como el !tts)</label>
+          </div>
+          <div class="fila">
+            <label class="tit">Gif, imagen o video</label>
+            <select id="aArchivo"></select>
+          </div>
+          <div class="fila">
+            <label class="tit">Sonido</label>
+            <select id="aSonido"></select>
+          </div>
+          <label id="aSoltar">Arrastrá aquí un gif, video o sonido para esta alerta<br>o <u style="cursor:pointer">elegilo</u>
+            <input type="file" id="aSubir" accept=".mp4,.webm,.mov,.mp3,.ogg,.wav,.m4a,.gif,.png,.webp,.jpg,.jpeg" hidden>
+          </label>
+          <div class="dos" style="margin-top:14px">
+            <div class="fila"><label class="tit">Volumen <b id="atVol"></b></label><input type="range" id="aVol" min="0" max="100" step="5"></div>
+            <div class="fila"><label class="tit">Duración <b id="atDur"></b></label><input type="range" id="aDur" min="0" max="30" step="1"></div>
+          </div>
+          <div class="fila" id="aFilaMin"><label class="tit" id="aMinTit">Mínimo</label><input type="number" id="aMin" min="0" step="1"></div>
+        </div>
+      </div>
+
+      <h2 style="margin-top:18px">Estilo de tus alertas <span style="text-transform:none;letter-spacing:0;font-weight:400">(vale para todas)</span></h2>
+      <div class="tres">
+        <div class="fila"><label class="tit">Letra</label><select id="eFuente"></select></div>
+        <div class="fila"><label class="tit">Tamaño de letra <b id="etTam"></b></label><input type="range" id="eTam" min="20" max="100" step="2"></div>
+        <div class="fila"><label class="tit">Dónde aparece</label><select id="eLugar">
+          <option value="arriba-izquierda">Arriba a la izquierda</option><option value="arriba">Arriba al centro</option><option value="arriba-derecha">Arriba a la derecha</option>
+          <option value="izquierda">Izquierda</option><option value="centro">Centro</option><option value="derecha">Derecha</option>
+          <option value="abajo-izquierda">Abajo a la izquierda</option><option value="abajo">Abajo al centro</option><option value="abajo-derecha">Abajo a la derecha</option></select></div>
+        <div class="fila"><label class="tit">Color del texto</label><input type="color" id="eTexto"></div>
+        <div class="fila"><label class="tit">Color del nombre y cantidad</label><input type="color" id="eResaltado"></div>
+        <div class="fila"><label class="tit">Color del fondo</label><input type="color" id="eFondo"></div>
+        <div class="fila"><label class="tit">Fondo visible <b id="etOpac"></b></label><input type="range" id="eOpac" min="0" max="100" step="5"></div>
+        <div class="fila"><label class="tit">Esquinas redondeadas <b id="etRed"></b></label><input type="range" id="eRed" min="0" max="60" step="2"></div>
+        <div class="fila"><label class="tit">Ancho máximo <b id="etAncho"></b></label><input type="range" id="eAncho" min="400" max="1800" step="20"></div>
+        <div class="fila"><label class="tit">Animación</label><select id="eAnim"></select></div>
+        <div class="fila"><label class="tit">Gif o video</label><select id="eDiseno"><option value="arriba">Arriba del texto</option><option value="lado">Al costado del texto</option></select></div>
+        <div class="fila"><label class="tit">Tamaño del gif o video <b id="etImg"></b></label><input type="range" id="eImg" min="80" max="600" step="10"></div>
+      </div>
+      <div class="fila"><label class="check"><input type="checkbox" id="aPausar"> Las recompensas esperan mientras sale una alerta</label></div>
+      <div class="botones"><button id="eLimpio">Volver al estilo limpio</button></div>
+      <div class="ayuda" style="margin-top:8px">Seguidores, subs, bits y raids llegan solos desde Streamer.bot. Las donaciones llegan si conectás StreamElements, Streamlabs, Ko-fi o TipeeeStream en Streamer.bot (Integrations).</div>
+    </section>
+
+    <section class="caja" id="lluviaCaja">
+      <h2>Lluvia de emotes 7TV</h2>
+      <div class="fila">
+        <label class="check"><input type="checkbox" id="lActiva"> Activada: si el chat repite un emote muchas veces, cae como lluvia en OBS</label>
+      </div>
+      <div class="dos">
+        <div class="fila">
+          <label class="tit">Canal de Twitch</label>
+          <input type="text" id="lCanal" placeholder="Se completa solo desde Streamer.bot" autocomplete="off">
+        </div>
+        <div class="fila">
+          <label class="tit">Emotes de 7TV</label>
+          <div class="ayuda" id="lEstado" style="margin-top:10px">Esperando el canal…</div>
+        </div>
+      </div>
+      <div class="tres">
+        <div class="fila"><label class="tit">Veces que se repite <b id="tUmbral"></b></label><input type="range" id="lUmbral" min="2" max="30" step="1"></div>
+        <div class="fila"><label class="tit">En cuántos segundos <b id="tVentana"></b></label><input type="range" id="lVentana" min="3" max="60" step="1"></div>
+        <div class="fila"><label class="tit">Espera entre lluvias <b id="tCooldown"></b></label><input type="range" id="lCooldown" min="0" max="300" step="5"></div>
+        <div class="fila"><label class="tit">Cantidad de emotes <b id="tCantidad"></b></label><input type="range" id="lCantidad" min="5" max="150" step="5"></div>
+        <div class="fila"><label class="tit">Tamaño <b id="tTamano"></b></label><input type="range" id="lTamano" min="24" max="200" step="4"></div>
+        <div class="fila"><label class="tit">Cuánto dura <b id="tLDur"></b></label><input type="range" id="lDuracion" min="2" max="20" step="1"></div>
+      </div>
+      <div class="ayuda" id="lResumen" style="margin:-4px 0 12px"></div>
+      <div class="fila botones">
+        <label class="check"><input type="checkbox" id="lGlobales"> Incluir emotes globales de 7TV</label>
+        <label class="check"><input type="checkbox" id="lTwitch"> Incluir emotes de Twitch</label>
+      </div>
+      <div class="botones"><button class="principal" id="lProbar">🌧 Probar lluvia en OBS</button></div>
+      <div class="ayuda" style="margin-top:8px">Hacé clic en un emote para probar la lluvia con ese emote.</div>
+      <div id="emotes"></div>
+    </section>
+
+    <section class="caja" id="ttsCaja">
+      <h2>Lectura en voz (!tts)</h2>
+      <div class="fila">
+        <label class="check"><input type="checkbox" id="tActiva"> Activada: el chat escribe <b id="tEjemplo">!tts hola</b> y se lee en voz alta en OBS</label>
+      </div>
+      <div class="tres">
+        <div class="fila"><label class="tit">Comando</label><input type="text" id="tComando" autocomplete="off"></div>
+        <div class="fila"><label class="tit">Quién puede usarlo</label>
+          <select id="tQuien"><option value="todos">Todos</option><option value="subs">Suscriptores, VIPs y mods</option><option value="vips">VIPs y mods</option><option value="mods">Solo mods</option></select></div>
+        <div class="fila"><label class="tit">Voz</label>
+          <select id="tIdioma"><option value="mx">Español (México) · mx</option><option value="es">Español (España) · es</option><option value="us">Español (EE. UU.) · us</option><option value="en">Inglés (EE. UU.) · en</option><option value="uk">Inglés (Reino Unido) · uk</option><option value="au">Inglés (Australia) · au</option><option value="in">Inglés (India) · in</option><option value="br">Portugués (Brasil) · br</option><option value="pt">Portugués (Portugal) · pt</option><option value="fr">Francés · fr</option><option value="it">Italiano · it</option><option value="ja">Japonés · ja</option></select></div>
+        <div class="fila"><label class="tit">Largo máximo <b id="ttMax"></b></label><input type="range" id="tMax" min="20" max="300" step="10"></div>
+        <div class="fila"><label class="tit">Espera por persona <b id="ttEspera"></b></label><input type="range" id="tEspera" min="0" max="300" step="5"></div>
+        <div class="fila"><label class="tit">Volumen <b id="ttVol"></b></label><input type="range" id="tVol" min="0" max="100" step="5"></div>
+        <div class="fila"><label class="tit">Velocidad <b id="ttVel"></b></label><input type="range" id="tVel" min="50" max="200" step="5"></div>
+        <div class="fila"><label class="tit">Efecto</label>
+          <select id="tEfecto"><option value="">Normal</option><option value="ardilla">Ardilla (aguda)</option><option value="monstruo">Monstruo (grave)</option></select></div>
+        <div class="fila"><label class="tit">Recompensa que lee su texto</label><input type="text" id="tRecompensa" placeholder="Ninguna" autocomplete="off"></div>
+        <div class="fila" style="display:flex;flex-direction:column;justify-content:flex-end;gap:8px"><label class="check"><input type="checkbox" id="tNombre"> Decir quién lo escribió</label>
+          <label class="check"><input type="checkbox" id="tVocesChat"> El chat puede elegir voz y efecto</label></div>
+      </div>
+      <div class="ayuda" id="tAyudaVoces" style="margin:-4px 0 8px"></div>
+      <div class="ayuda" style="margin:0 0 12px">Los mods no tienen espera. Los TTS hacen la misma fila que las recompensas, así que también cuentan "Máximo de recompensas a la vez" y "Máximo en espera" (Ajustes generales).</div>
+      <div class="dos">
+        <input type="text" id="tPrueba" value="Hola, esto es una prueba de voz" maxlength="300">
+        <div class="botones"><button class="principal" id="tProbar">🔊 Probar voz en OBS</button></div>
       </div>
     </section>
 
@@ -225,14 +417,19 @@
           </select>
         </div>
         <div class="fila">
-          <label class="tit">Máximo de videos a la vez</label>
+          <label class="tit">Máximo de recompensas a la vez</label>
           <input type="number" id="gMax" min="1" max="20" step="1">
           <div class="ayuda">Si canjean muchos seguidos, los demás esperan su turno (evita que llenen la pantalla).</div>
         </div>
         <div class="fila">
+          <label class="tit">Máximo en espera</label>
+          <input type="number" id="gEspera" min="0" max="100" step="1">
+          <div class="ayuda">Cuántas recompensas y TTS pueden esperar su turno. Las que llegan con la fila llena se descartan. 0 = ninguna espera.</div>
+        </div>
+        <div class="fila">
           <label class="tit">Recompensas sin ajustes: tamaño</label>
           <input type="number" id="gAncho" min="80" max="1920" step="10">
-          <div class="ayuda">Para videos que estén en la carpeta pero no en esta lista, y para los videos nuevos.</div>
+          <div class="ayuda">Para archivos que estén en la carpeta pero no en esta lista, y para los nuevos.</div>
         </div>
       </div>
       <h2 style="margin-top:8px">Conexión con Streamer.bot</h2>
@@ -256,7 +453,9 @@
 <script>
 (() => {
   const $ = (id) => document.getElementById(id);
-  const EXT = /\.(mp4|webm|mov)$/i;
+  const EXT = /\.(mp4|webm|mov|mp3|ogg|wav|m4a|gif|png|webp|jpe?g)$/i;
+  const tipo = (a) => /\.(mp3|ogg|wav|m4a)$/i.test(a) ? 'audio' : /\.(gif|png|webp|jpe?g)$/i.test(a) ? 'imagen' : 'video';
+  const NOMBRE_TIPO = { video: 'video', audio: 'audio', imagen: 'imagen' };
   const ZONAS = ['arriba-izquierda', 'arriba', 'arriba-derecha', 'izquierda', 'centro', 'derecha', 'abajo-izquierda', 'abajo', 'abajo-derecha'];
   const ZPOS = { 'arriba-izquierda': [0, 0], 'arriba': [0.5, 0], 'arriba-derecha': [1, 0], 'izquierda': [0, 0.5], 'centro': [0.5, 0.5],
     'derecha': [1, 0.5], 'abajo-izquierda': [0, 1], 'abajo': [0.5, 1], 'abajo-derecha': [1, 1] };
@@ -265,9 +464,149 @@
   const normal = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]/g, '');
   const sinExt = (f) => f.replace(EXT, '');
 
+  // ---------- Alertas: valores por defecto, estilo y dibujo (igual en widget.html y configurar.html) ----------
+  const TIPOS_ALERTA = {
+    follow:   { nombre: 'Seguidor',          texto: '¡Gracias por seguir, {usuario}!',          vars: ['usuario'] },
+    sub:      { nombre: 'Sub',               texto: '¡{usuario} se suscribió!',                  vars: ['usuario', 'nivel', 'mensaje'], msj: true },
+    resub:    { nombre: 'Resub',             texto: '¡{usuario} renovó su sub! {meses} meses',   vars: ['usuario', 'meses', 'nivel', 'mensaje'], msj: true },
+    regalo:   { nombre: 'Sub regalada',      texto: '¡{usuario} le regaló una sub a {destino}!', vars: ['usuario', 'destino', 'nivel'] },
+    bomba:    { nombre: 'Varias regaladas',  texto: '¡{usuario} regaló {cantidad} subs!',        vars: ['usuario', 'cantidad', 'nivel'], min: 'Mínimo de subs', minDef: 1 },
+    bits:     { nombre: 'Bits',              texto: '¡{usuario} envió {cantidad} bits!',         vars: ['usuario', 'cantidad', 'mensaje'], msj: true, min: 'Mínimo de bits', minDef: 1 },
+    raid:     { nombre: 'Raid',              texto: '¡Llega una raid de {usuario} con {cantidad} personas!', vars: ['usuario', 'cantidad'], min: 'Mínimo de personas', minDef: 1 },
+    donacion: { nombre: 'Donación',          texto: '¡{usuario} donó {cantidad}!',               vars: ['usuario', 'cantidad', 'mensaje'], msj: true, min: 'Mínimo a donar', minDef: 0 },
+  };
+  const PRUEBA_ALERTA = {
+    follow: { usuario: 'NombreDePrueba' }, sub: { usuario: 'NombreDePrueba', nivel: '1', mensaje: '¡Hola a todos!' },
+    resub: { usuario: 'NombreDePrueba', meses: '12', cantidad: '12', nivel: '1', mensaje: 'Un año ya, ¡qué rápido!' },
+    regalo: { usuario: 'NombreDePrueba', destino: 'OtraPersona', nivel: '1' }, bomba: { usuario: 'NombreDePrueba', cantidad: '5', nivel: '1' },
+    bits: { usuario: 'NombreDePrueba', cantidad: '100', mensaje: '¡Buen stream!' }, raid: { usuario: 'NombreDePrueba', cantidad: '25' },
+    donacion: { usuario: 'NombreDePrueba', cantidad: '$5.00', mensaje: 'Para un café' },
+  };
+  // Fuentes: las del sistema funcionan sin internet; las demás se bajan de Google Fonts.
+  const FUENTES = {
+    'Segoe UI': '', 'Arial': '', 'Verdana': '', 'Trebuchet MS': '', 'Georgia': '', 'Impact': '', 'Comic Sans MS': '', 'Consolas': '',
+    'Inter': '400;700', 'Poppins': '400;700', 'Montserrat': '400;700', 'Nunito': '400;700', 'Quicksand': '400;700', 'Fredoka': '400;700',
+    'Baloo 2': '400;700', 'Comfortaa': '400;700', 'Outfit': '400;700', 'Bebas Neue': '400', 'Bangers': '400', 'Pacifico': '400',
+    'Dancing Script': '400;700', 'Press Start 2P': '400', 'VT323': '400', 'Silkscreen': '400;700',
+  };
+  const ESTILO_LIMPIO = { fuente: 'Segoe UI', tamano: 46, colorTexto: '#ffffff', colorResaltado: '#ffd479', colorFondo: '#141519', opacidadFondo: 0.85,
+    fondo: true, redondeo: 18, ancho: 1000, lugar: 'arriba', animacion: 'subir', diseno: 'arriba', tamanoImagen: 260 };
+  const ANIMACIONES = { subir: 'Sube', zoom: 'Rebota', deslizar: 'Entra de costado', aparecer: 'Aparece suave' };
+  const LUGARES = { 'arriba-izquierda': [0, 0], 'arriba': [0.5, 0], 'arriba-derecha': [1, 0], 'izquierda': [0, 0.5], 'centro': [0.5, 0.5],
+    'derecha': [1, 0.5], 'abajo-izquierda': [0, 1], 'abajo': [0.5, 1], 'abajo-derecha': [1, 1] };
+  const colorOk = (c, def) => typeof c === 'string' && /^#[0-9a-f]{6}$/i.test(c) ? c.toLowerCase() : def;
+  const nAl = (x, min, max, def) => { x = Number(x); return Number.isFinite(x) ? Math.min(max, Math.max(min, x)) : def; };
+  const archivoAlerta = (a) => typeof a === 'string' && /^[^\\/:*?"<>|\u0000-\u001f]{1,120}\.(mp4|webm|mov|mp3|ogg|wav|m4a|gif|png|webp|jpe?g)$/i.test(a) && !a.startsWith('.') ? a : '';
+  function limpiarAlertas(x) {
+    x = x && typeof x === 'object' ? x : {};
+    const e = x.estilo && typeof x.estilo === 'object' ? x.estilo : {}, D = ESTILO_LIMPIO;
+    const estilo = {
+      fuente: Object.prototype.hasOwnProperty.call(FUENTES, e.fuente) ? e.fuente : D.fuente,
+      tamano: nAl(e.tamano, 16, 120, D.tamano), colorTexto: colorOk(e.colorTexto, D.colorTexto), colorResaltado: colorOk(e.colorResaltado, D.colorResaltado),
+      colorFondo: colorOk(e.colorFondo, D.colorFondo), opacidadFondo: nAl(e.opacidadFondo, 0, 1, D.opacidadFondo), fondo: e.fondo !== false,
+      redondeo: nAl(e.redondeo, 0, 60, D.redondeo), ancho: nAl(e.ancho, 300, 1800, D.ancho),
+      lugar: LUGARES[e.lugar] ? e.lugar : D.lugar, animacion: ANIMACIONES[e.animacion] ? e.animacion : D.animacion,
+      diseno: ['arriba', 'lado'].includes(e.diseno) ? e.diseno : D.diseno, tamanoImagen: nAl(e.tamanoImagen, 60, 700, D.tamanoImagen),
+    };
+    const tx = x.tipos && typeof x.tipos === 'object' ? x.tipos : {}, tipos = {};
+    Object.keys(TIPOS_ALERTA).forEach(k => {
+      const t = tx[k] && typeof tx[k] === 'object' ? tx[k] : {}, d = TIPOS_ALERTA[k];
+      const sonido = t.sonido === undefined || t.sonido === 'incluido' ? 'incluido' : t.sonido === '' ? '' : archivoAlerta(t.sonido) || 'incluido';
+      tipos[k] = {
+        activa: t.activa !== false, texto: typeof t.texto === 'string' && t.texto.trim() ? t.texto.slice(0, 200) : d.texto,
+        archivo: archivoAlerta(t.archivo), sonido, volumen: nAl(t.volumen, 0, 1, 0.6), duracion: nAl(t.duracion, 0, 60, 6),
+        minimo: nAl(t.minimo, 0, 1000000, d.minDef || 0), mostrarMensaje: t.mostrarMensaje !== false, leer: t.leer === true,
+      };
+    });
+    return { activa: x.activa !== false, pausarRecompensas: x.pausarRecompensas !== false, estilo, tipos };
+  }
+  const fuentesPedidas = new Set();
+  // Carga la fuente (si es de Google Fonts) y avisa cuando está lista, o a los 2 s como mucho
+  function cargarFuente(nombre) {
+    const pesos = FUENTES[nombre];
+    if (!pesos) return Promise.resolve();
+    if (!fuentesPedidas.has(nombre)) {
+      fuentesPedidas.add(nombre);
+      const l = document.createElement('link'); l.rel = 'stylesheet';
+      l.href = 'https://fonts.googleapis.com/css2?family=' + nombre.replace(/ /g, '+') + ':wght@' + pesos + '&display=swap';
+      document.head.appendChild(l);
+    }
+    const espera = new Promise(ok => setTimeout(ok, 2000));
+    const lista = new Promise(ok => {
+      const probar = (n) => document.fonts.load('700 40px "' + nombre + '"').then(f => f.length || n > 8 ? ok() : setTimeout(() => probar(n + 1), 200)).catch(ok);
+      probar(0);
+    });
+    return Promise.race([lista, espera]);
+  }
+  const pilaFuente = (n) => '"' + n + '", "Segoe UI", system-ui, sans-serif';
+  const rgba = (hex, a) => 'rgba(' + parseInt(hex.slice(1, 3), 16) + ',' + parseInt(hex.slice(3, 5), 16) + ',' + parseInt(hex.slice(5, 7), 16) + ',' + a + ')';
+  // Arma el cartel: k = escala (1 en 1920×1080). media = <img> o <video> ya cargado, o null.
+  function armarAlerta(E, tc, datos, media, k) {
+    const el = document.createElement('div');
+    el.className = 'alerta' + (E.diseno === 'lado' && media ? ' lado' : '');
+    Object.assign(el.style, {
+      fontFamily: pilaFuente(E.fuente), fontSize: E.tamano * k + 'px', color: E.colorTexto, maxWidth: E.ancho * k + 'px',
+      gap: 18 * k + 'px', padding: E.fondo ? (26 * k) + 'px ' + (38 * k) + 'px' : '0', borderRadius: E.redondeo * k + 'px',
+      background: E.fondo ? rgba(E.colorFondo, E.opacidadFondo) : 'transparent',
+      boxShadow: E.fondo && E.opacidadFondo > 0.05 ? '0 ' + 12 * k + 'px ' + 40 * k + 'px rgba(0,0,0,.30)' : 'none',
+      textShadow: !E.fondo || E.opacidadFondo < 0.35 ? '0 ' + 2 * k + 'px ' + 10 * k + 'px rgba(0,0,0,.75)' : 'none',
+    });
+    el.style.setProperty('--res', E.colorResaltado);
+    if (media) {
+      const m = document.createElement('div'); m.className = 'amedia';
+      Object.assign(media.style, { height: E.tamanoImagen * k + 'px', maxWidth: (E.diseno === 'lado' ? E.tamanoImagen * 1.8 : E.ancho - 76) * k + 'px' });
+      m.appendChild(media); el.appendChild(m);
+    }
+    const txt = document.createElement('div'), tit = document.createElement('div');
+    tit.className = 'atit';
+    String(tc.texto).split(/(\{[a-z]+\})/g).forEach(p => {
+      const v = p.match(/^\{([a-z]+)\}$/);
+      if (v && ['usuario', 'cantidad', 'meses', 'destino', 'nivel', 'mensaje'].includes(v[1])) {
+        const s = document.createElement('span'); s.className = 'res'; s.textContent = datos[v[1]] == null ? '' : String(datos[v[1]]); tit.appendChild(s);
+      } else if (p) tit.appendChild(document.createTextNode(p));
+    });
+    txt.appendChild(tit);
+    if (tc.mostrarMensaje && datos.mensaje && !/\{mensaje\}/.test(tc.texto)) {
+      const s = document.createElement('div'); s.className = 'amsj'; s.textContent = datos.mensaje; txt.appendChild(s);
+    }
+    el.appendChild(txt);
+    return el;
+  }
+  function animarAlerta(el, E, k, saliendo) {
+    const d = { subir: 'translateY(' + 50 * k + 'px)', zoom: 'scale(.55)', deslizar: 'translateX(' + -120 * k + 'px)', aparecer: 'none' }[E.animacion] || 'none';
+    const cuadros = E.animacion === 'zoom' && !saliendo
+      ? [{ opacity: 0, transform: d }, { opacity: 1, transform: 'scale(1.06)', offset: 0.65 }, { opacity: 1, transform: 'none' }]
+      : [{ opacity: 0, transform: d }, { opacity: 1, transform: 'none' }];
+    return el.animate(saliendo ? cuadros.slice().reverse() : cuadros,
+      { duration: saliendo ? 380 : 520, easing: saliendo ? 'ease-in' : 'cubic-bezier(.2,.9,.3,1)', fill: 'both' });
+  }
+  function ponerAlerta(el, E, W, H, k) {
+    const [fx, fy] = LUGARES[E.lugar] || [0.5, 0], m = 50 * k;
+    const w = el.offsetWidth, h = el.offsetHeight;
+    el.style.left = m + fx * Math.max(0, W - w - 2 * m) + 'px'; el.style.top = m + fy * Math.max(0, H - h - 2 * m) + 'px';
+  }
+  // Sonido incluido: una campanita suave hecha en el momento (no necesita archivo)
+  let ctxAudio = null;
+  function campanita(tipo, vol) {
+    try {
+      ctxAudio = ctxAudio || new AudioContext();
+      if (ctxAudio.state === 'suspended') ctxAudio.resume();
+      const notas = { follow: [660, 880], sub: [523, 659, 784], resub: [523, 659, 784, 1047], regalo: [587, 740, 880], bomba: [523, 659, 784, 1047, 1319],
+        bits: [880, 1175, 1319], raid: [392, 523, 659, 784], donacion: [659, 831, 988, 1319] }[tipo] || [660, 880];
+      const t0 = ctxAudio.currentTime + 0.03, salida = ctxAudio.createGain();
+      salida.gain.value = Math.max(0, Math.min(1, vol)) * 0.5; salida.connect(ctxAudio.destination);
+      notas.forEach((f, i) => [[f, 'sine', 0.5], [f * 2, 'triangle', 0.08]].forEach(([fr, forma, g0]) => {
+        const o = ctxAudio.createOscillator(), g = ctxAudio.createGain(), t = t0 + i * 0.12;
+        o.type = forma; o.frequency.value = fr;
+        g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(g0, t + 0.012); g.gain.exponentialRampToValueAtTime(0.0001, t + 1.3);
+        o.connect(g).connect(salida); o.start(t); o.stop(t + 1.4);
+      }));
+    } catch (e) {}
+  }
+
   let raiz = null, carpetaVideos = null;
   let cfg = null;          // config completo
-  let items = [];          // [{archivo, url, v}] v = ajustes del video
+  let items = [];          // [{archivo, tipo, url, v}] v = ajustes de la recompensa
   let sel = -1;
 
   function aviso(t, ms = 3500) {
@@ -292,8 +631,12 @@
   // ---------- Leer / escribir config.js ----------
   const DEFECTO = {
     streamerbotHost: '127.0.0.1', streamerbotPuerto: 8080, streamerbotClave: '',
-    porDefecto: { ancho: 400, escalaMin: 0.8, escalaMax: 1.3, lugares: ['azar'], volumen: 0.8, fondoVerde: false },
+    porDefecto: { ancho: 400, escalaMin: 0.8, escalaMax: 1.3, lugares: ['azar'], volumen: 0.8, duracion: 0, fondoVerde: false },
     siCoinciden: 'juntos', maxALaVez: 4, videos: [],
+    grupos: ['Videos', 'Audios', 'Gifs'], maxEnEspera: 10,
+    tts: { activa: true, comando: '!tts', quien: 'todos', recompensa: '', maxLetras: 150, espera: 30, volumen: 0.8, velocidad: 1, idioma: 'mx', vocesChat: true, efecto: '', decirNombre: true },
+    alertas: limpiarAlertas({}),
+    lluvia: { activa: true, canal: '', umbral: 5, ventana: 10, cooldown: 30, cantidad: 40, tamano: 72, duracion: 6, globales: true, twitch: false },
   };
   // Lee config.js SIN ejecutarlo: se queda solo con el objeto JSON de dentro.
   function parsearConfig(texto) {
@@ -309,7 +652,11 @@
       const fh = await raiz.getFileHandle('config.js');
       const texto = await (await fh.getFile()).text();
       const c = parsearConfig(texto);
-      return Object.assign({}, DEFECTO, c, { porDefecto: Object.assign({}, DEFECTO.porDefecto, c.porDefecto || {}) });
+      return Object.assign({}, DEFECTO, c, { porDefecto: Object.assign({}, DEFECTO.porDefecto, c.porDefecto || {}),
+        lluvia: Object.assign({}, DEFECTO.lluvia, c.lluvia && typeof c.lluvia === 'object' ? c.lluvia : {}),
+        tts: Object.assign({}, DEFECTO.tts, c.tts && typeof c.tts === 'object' ? c.tts : {}),
+        alertas: limpiarAlertas(c.alertas),
+        grupos: Array.isArray(c.grupos) ? [...new Set(c.grupos.filter(g => typeof g === 'string').map(limpiarGrupo).filter(Boolean))] : DEFECTO.grupos.slice() });
     } catch (e) {
       console.warn('config.js no se pudo leer, uso valores por defecto', e);
       setTimeout(() => aviso('config.js tenía un formato que no entiendo: empecé con los valores por defecto. Al guardar se reescribe bien.', 7000), 300);
@@ -322,10 +669,13 @@
     $('guardado').textContent = 'Guardando…';
     clearTimeout(tGuardar); tGuardar = setTimeout(() => guardar(), 500);
   }
-  function guardar(prueba) {
+  function guardar(prueba, pruebaLluvia, pruebaTTS, pruebaAlerta) {
     clearTimeout(tGuardar);
     cfg.videos = items.map(it => it.v);
     if (prueba) cfg.prueba = prueba;
+    if (pruebaLluvia) cfg.pruebaLluvia = pruebaLluvia;
+    if (pruebaTTS) cfg.pruebaTTS = pruebaTTS;
+    if (pruebaAlerta) cfg.pruebaAlerta = pruebaAlerta;
     cfg.autor = 'kysbebe · https://github.com/kysbebe';
     const texto = '// Este archivo lo escribe configurar.html. Es más fácil cambiarlo desde ahí.\n' +
       '// (Si lo editás a mano, guardá y el widget lo toma solo en 2 segundos.)\n' +
@@ -346,12 +696,16 @@
     catch { aviso('Esa carpeta no tiene widget.html. Elegí la carpeta recompensas-video.', 6000); return; }
     raiz = handle;
     carpetaVideos = await raiz.getDirectoryHandle('videos', { create: true });
+    carpetaAlertas = await raiz.getDirectoryHandle('alertas', { create: true });
     await dbSet('carpeta', handle);
     cfg = await leerConfig();
     await cargarVideos();
-    pintarGenerales();
+    await cargarArchivosAlerta();
+    pintarGenerales(); pintarLluvia(); pintarTTS(); pintarAlertas();
     $('inicio').hidden = true; $('app').hidden = false; $('cambiarCarpeta').hidden = false;
+    verAlerta(false);
     conectarSB();
+    cargarEmotesPanel();
   }
 
   async function cargarVideos() {
@@ -365,29 +719,117 @@
       const encontrado = previos.find(v => v && v.archivo === archivo) ||
         previos.find(v => !v.archivo && normal(v.nombre) === normal(sinExt(archivo)));
       const v = Object.assign({}, cfg.porDefecto, { nombre: sinExt(archivo), activo: true }, encontrado || {}, { archivo });
+      if (!(v.duracion >= 0)) v.duracion = 0;
+      if (tipo(archivo) !== 'imagen') delete v.sonido;
       if (!Array.isArray(v.lugares) || !v.lugares.length) v.lugares = ['azar'];
       v.lugares = v.lugares.filter(z => z === 'azar' || ZONAS.includes(z));
       if (!v.lugares.length) v.lugares = ['azar'];
       v.nombre = String(v.nombre || '').slice(0, 100);
-      items.push({ archivo, url: URL.createObjectURL(await h.getFile()), v });
+      const it = { archivo, tipo: tipo(archivo), url: URL.createObjectURL(await h.getFile()), v };
+      v.grupo = grupoDe(it);
+      items.push(it);
     }
     sel = items.length ? Math.min(Math.max(sel, 0), items.length - 1) : -1;
     pintarLista(); pintarEditor();
   }
 
+  // ---------- Carpetas (solo ordenan el panel; los archivos siguen todos en "videos") ----------
+  const limpiarGrupo = (g) => String(g || '').replace(/[\u0000-\u001f]/g, '').trim().slice(0, 40);
+  const GRUPO_TIPO = { video: 'Videos', audio: 'Audios', imagen: 'Gifs' };
+  function grupoDe(it) {
+    const g = it.v.grupo;
+    if (g === '' || (typeof g === 'string' && cfg.grupos.includes(g))) return g;
+    const d = GRUPO_TIPO[it.tipo];
+    return cfg.grupos.includes(d) ? d : '';
+  }
+  let plegadas = new Set();
+  try { plegadas = new Set(JSON.parse(localStorage.getItem('panel-plegadas') || '[]')); } catch {}
+  const guardarPlegadas = () => { try { localStorage.setItem('panel-plegadas', JSON.stringify([...plegadas])); } catch {} };
+  function pedirNombreCarpeta(actual) {
+    const n = limpiarGrupo(prompt(actual ? 'Nuevo nombre para la carpeta:' : 'Nombre de la carpeta nueva (por ejemplo: Sonidos):', actual || ''));
+    if (!n || n === actual) return '';
+    if (cfg.grupos.some(g => g.toLowerCase() === n.toLowerCase())) { aviso('Ya hay una carpeta llamada "' + n + '".'); return ''; }
+    return n;
+  }
+  function nuevaCarpeta() {
+    const n = pedirNombreCarpeta(); if (!n) return '';
+    cfg.grupos.push(n); plegadas.delete(n); guardarPlegadas();
+    pintarLista(); pintarEditor(); guardarPronto();
+    return n;
+  }
+  function renombrarCarpeta(g) {
+    const n = pedirNombreCarpeta(g); if (!n) return;
+    cfg.grupos[cfg.grupos.indexOf(g)] = n;
+    items.forEach(it => { if (it.v.grupo === g) it.v.grupo = n; });
+    if (plegadas.delete(g)) { plegadas.add(n); guardarPlegadas(); }
+    pintarLista(); pintarEditor(); guardarPronto();
+  }
+  function borrarCarpeta(g) {
+    const cant = items.filter(it => it.v.grupo === g).length;
+    if (!confirm('¿Borrar la carpeta "' + g + '"?' + (cant ? ' Sus ' + cant + ' recompensas no se borran: pasan a "Sin carpeta".' : ''))) return;
+    cfg.grupos = cfg.grupos.filter(x => x !== g);
+    items.forEach(it => { if (it.v.grupo === g) it.v.grupo = ''; });
+    pintarLista(); pintarEditor(); guardarPronto();
+  }
+  function moverA(archivo, g) {
+    const it = items.find(x => x.archivo === archivo); if (!it || it.v.grupo === g) return;
+    it.v.grupo = g; plegadas.delete(g); guardarPlegadas();
+    pintarLista(); pintarEditor(); guardarPronto();
+  }
+  $('nuevaCarpeta').onclick = () => nuevaCarpeta();
+
   // ---------- Lista ----------
+  let arrastrandoItem = null;
   function pintarLista() {
     const l = $('lista'); l.innerHTML = '';
-    if (!items.length) { l.innerHTML = '<div class="vacio">La carpeta videos está vacía.</div>'; return; }
-    items.forEach((it, i) => {
-      const d = document.createElement('div');
-      d.className = 'item' + (i === sel ? ' sel' : '') + (it.v.activo === false ? ' apagado' : '');
-      d.innerHTML = '<video muted preload="metadata"></video><div><div class="nom"></div><div class="arch"></div></div>';
-      d.querySelector('video').src = it.url + '#t=0.5';
-      d.querySelector('.nom').textContent = it.v.nombre;
-      d.querySelector('.arch').textContent = it.archivo + (it.v.activo === false ? ' · desactivado' : '');
-      d.onclick = () => { sel = i; pintarLista(); pintarEditor(); };
-      l.appendChild(d);
+    if (!items.length && !cfg.grupos.length) { l.innerHTML = '<div class="vacio">La carpeta videos está vacía.</div>'; return; }
+    const grupos = cfg.grupos.concat(items.some(it => it.v.grupo === '') ? [''] : []);
+    grupos.forEach(g => {
+      const caja = document.createElement('div');
+      const dentro = items.map((it, i) => [it, i]).filter(([it]) => it.v.grupo === g);
+      caja.className = 'grupo' + (plegadas.has(g) ? ' plegada' : '');
+      const cab = document.createElement('div'); cab.className = 'gcab';
+      cab.innerHTML = '<span class="flecha">▼</span><span class="gnom"></span><span class="gcant"></span>';
+      cab.querySelector('.gnom').textContent = g || 'Sin carpeta';
+      cab.querySelector('.gcant').textContent = dentro.length;
+      if (g) {
+        const ren = document.createElement('button'); ren.textContent = '✎'; ren.title = 'Cambiar nombre';
+        ren.onclick = (e) => { e.stopPropagation(); renombrarCarpeta(g); };
+        const bor = document.createElement('button'); bor.textContent = '✕'; bor.title = 'Borrar carpeta (no borra los archivos)';
+        bor.onclick = (e) => { e.stopPropagation(); borrarCarpeta(g); };
+        cab.append(ren, bor);
+      }
+      cab.onclick = () => { plegadas.has(g) ? plegadas.delete(g) : plegadas.add(g); guardarPlegadas(); caja.classList.toggle('plegada'); };
+      const lis = document.createElement('div'); lis.className = 'gitems';
+      if (!dentro.length) lis.innerHTML = '<div class="gvacia">Vacía: arrastrá algo acá.</div>';
+      dentro.forEach(([it, i]) => {
+        const d = document.createElement('div');
+        d.className = 'item' + (i === sel ? ' sel' : '') + (it.v.activo === false ? ' apagado' : '');
+        d.draggable = true;
+        d.innerHTML = (it.tipo === 'video' ? '<video muted preload="metadata"></video>' : it.tipo === 'imagen' ? '<img class="mini" alt="" draggable="false">' : '<span class="mini">🔊</span>') +
+          '<div><div class="nom"></div><div class="arch"></div></div>';
+        if (it.tipo === 'video') d.querySelector('video').src = it.url + '#t=0.5';
+        if (it.tipo === 'imagen') d.querySelector('img').src = it.url;
+        d.querySelector('.nom').textContent = it.v.nombre;
+        d.querySelector('.arch').textContent = it.archivo + (it.tipo === 'imagen' && it.v.sonido ? ' + 🔊' : '') + (it.v.activo === false ? ' · desactivado' : '');
+        d.onclick = () => { sel = i; pintarLista(); pintarEditor(); };
+        d.ondragstart = (e) => { arrastrandoItem = it.archivo; e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', it.archivo); };
+        d.ondragend = () => { arrastrandoItem = null; document.querySelectorAll('.grupo.encima').forEach(x => x.classList.remove('encima')); };
+        lis.appendChild(d);
+      });
+      // Soltar acá: una recompensa de la lista (la mueve) o archivos nuevos (los agrega en esta carpeta)
+      let dentroDe = 0;
+      caja.ondragenter = (e) => { e.preventDefault(); if (++dentroDe === 1) caja.classList.add('encima'); };
+      caja.ondragleave = () => { if (--dentroDe <= 0) { dentroDe = 0; caja.classList.remove('encima'); } };
+      caja.ondragover = (e) => { e.preventDefault(); e.dataTransfer.dropEffect = arrastrandoItem ? 'move' : 'copy'; };
+      caja.ondrop = (e) => {
+        e.preventDefault(); e.stopPropagation(); dentroDe = 0; caja.classList.remove('encima');
+        arrastres = 0; document.body.classList.remove('arrastrando');
+        if (arrastrandoItem) { const a = arrastrandoItem; arrastrandoItem = null; moverA(a, g); }
+        else if (e.dataTransfer.files.length) agregar(e.dataTransfer.files, g);
+      };
+      caja.append(cab, lis);
+      l.appendChild(caja);
     });
   }
 
@@ -415,7 +857,25 @@
     $('fNombre').value = v.nombre;
     $('fAncho').value = v.ancho; $('fMin').value = Math.round(v.escalaMin * 100); $('fMax').value = Math.round(v.escalaMax * 100);
     $('fVol').value = Math.round(v.volumen * 100); $('fVerde').checked = !!v.fondoVerde; $('fActivo').checked = v.activo !== false;
-    const vp = $('vPrev'); if (vp.dataset.src !== items[sel].url) { vp.dataset.src = items[sel].url; vp.src = items[sel].url; vp.play().catch(() => {}); }
+    $('fDur').value = v.duracion || 0;
+    const fg = $('fGrupo'); fg.innerHTML = '';
+    cfg.grupos.concat(['', '+nueva']).forEach(g => { const o = document.createElement('option'); o.value = g; o.textContent = g === '' ? 'Sin carpeta' : g === '+nueva' ? '+ Nueva carpeta…' : g; fg.appendChild(o); });
+    fg.value = v.grupo || '';
+    const t = items[sel].tipo;
+    $('notaAudio').hidden = t !== 'audio'; $('bloqueVista').hidden = t === 'audio'; $('bloqueTam').hidden = t === 'audio';
+    $('filaVerde').hidden = t !== 'video'; $('filaSonido').hidden = t !== 'imagen';
+    if (t === 'imagen') {
+      const s = $('fSonido'); s.innerHTML = '';
+      const sin = document.createElement('option'); sin.value = ''; sin.textContent = 'Sin sonido'; s.appendChild(sin);
+      items.filter(x => x.tipo === 'audio').forEach(x => { const o = document.createElement('option'); o.value = o.textContent = x.archivo; s.appendChild(o); });
+      if (v.sonido && !items.some(x => x.archivo === v.sonido)) v.sonido = '';
+      s.value = v.sonido || '';
+    }
+    const vp = $('vPrev'), ip = $('iPrev');
+    vp.hidden = t !== 'video'; ip.hidden = t !== 'imagen';
+    if (t === 'video' && vp.dataset.src !== items[sel].url) { vp.dataset.src = items[sel].url; vp.src = items[sel].url; vp.play().catch(() => {}); }
+    if (t !== 'video') { vp.pause(); }
+    if (t === 'imagen' && ip.dataset.src !== items[sel].url) { ip.dataset.src = items[sel].url; ip.src = items[sel].url; }
     zonaVista = null;
     pintarVista();
   }
@@ -426,13 +886,19 @@
     $('tMin').textContent = Math.round(v.escalaMin * 100) + ' %';
     $('tMax').textContent = Math.round(v.escalaMax * 100) + ' %';
     $('tVol').textContent = Math.round(v.volumen * 100) + ' %';
+    const t = items[sel].tipo;
+    $('filaVol').hidden = t === 'imagen' && !v.sonido;
+    $('tDur').textContent = v.duracion > 0 ? v.duracion + ' s' : (t === 'imagen' ? (v.sonido ? 'lo que dura el sonido' : '5 s') : 'completo');
+    $('aDur').textContent = t === 'imagen' ? 'Cuántos segundos se ve. En 0: ' + (v.sonido ? 'mientras suena el sonido.' : '5 segundos.')
+      : 'En 0 se reproduce completo. Si ponés segundos, se corta ahí (el sonido baja suave).';
     const azar = v.lugares.includes('azar');
     $('pantalla').classList.toggle('azar', azar);
     $('zAzar').classList.toggle('on', azar);
     zonasDiv.querySelectorAll('div').forEach(c => c.classList.toggle('on', v.lugares.includes(c.dataset.z)));
 
     // Muestra el video en una de sus zonas (la última tocada, o la primera)
-    const vp = $('vPrev'), prop = (vp.videoHeight && vp.videoWidth) ? vp.videoHeight / vp.videoWidth : 9 / 16;
+    const vp = t === 'imagen' ? $('iPrev') : $('vPrev');
+    const pw = vp.videoWidth || vp.naturalWidth, ph = vp.videoHeight || vp.naturalHeight, prop = (pw && ph) ? ph / pw : 9 / 16;
     const zona = zonaVista && v.lugares.includes(zonaVista) ? zonaVista : (azar ? 'centro' : v.lugares[0]);
     const [fx, fy] = ZPOS[zona];
     const colocar = (el, w) => {
@@ -445,6 +911,7 @@
     colocar($('mMax'), v.ancho * v.escalaMax);
   }
   $('vPrev').addEventListener('loadedmetadata', pintarVista);
+  $('iPrev').addEventListener('load', pintarVista);
 
   function cambio() { pintarVista(); guardarPronto(); }
 
@@ -458,6 +925,13 @@
   $('fMax').oninput = (e) => { actual().escalaMax = +e.target.value / 100; cambio(); };
   $('fVol').oninput = (e) => { actual().volumen = +e.target.value / 100; cambio(); };
   $('fVerde').onchange = (e) => { actual().fondoVerde = e.target.checked; cambio(); };
+  $('fGrupo').onchange = (e) => {
+    const it = items[sel]; if (!it) return;
+    if (e.target.value === '+nueva') { const n = nuevaCarpeta(); if (n) moverA(it.archivo, n); else e.target.value = it.v.grupo || ''; return; }
+    moverA(it.archivo, e.target.value);
+  };
+  $('fDur').oninput = (e) => { actual().duracion = +e.target.value; cambio(); };
+  $('fSonido').onchange = (e) => { actual().sonido = e.target.value; pintarLista(); cambio(); };
   $('fActivo').onchange = (e) => { actual().activo = e.target.checked; pintarLista(); cambio(); };
   $('zAzar').onclick = () => { actual().lugares = ['azar']; cambio(); };
   $('zTodas').onclick = () => { actual().lugares = ZONAS.slice(); cambio(); };
@@ -465,7 +939,7 @@
 
   $('probar').onclick = async () => {
     const v = actual(); if (!v) return;
-    if (v.activo === false) { aviso('Este video está desactivado. Activalo para probarlo.'); return; }
+    if (v.activo === false) { aviso('Esta recompensa está desactivada. Activala para probarla.'); return; }
     await guardar({ nombre: v.nombre, t: Date.now() });
     aviso('Enviado. En 2 segundos tiene que aparecer en OBS.');
   };
@@ -473,40 +947,42 @@
   $('borrar').onclick = async () => {
     const it = items[sel]; if (!it) return;
     if (!confirm('¿Borrar "' + it.archivo + '" de la carpeta videos? No se puede deshacer.')) return;
+    items.forEach(x => { if (x.v.sonido === it.archivo) x.v.sonido = ''; });
     try { await carpetaVideos.removeEntry(it.archivo); } catch (e) { aviso('No se pudo borrar: ' + e.message); return; }
     cfg.videos = items.filter(x => x !== it).map(x => x.v);
     await cargarVideos(); guardar();
   };
 
   // ---------- Agregar videos ----------
-  async function agregar(files) {
+  async function agregar(files, grupo) {
     files = [...files].filter(f => EXT.test(f.name));
-    if (!files.length) { aviso('Solo videos .mp4, .webm o .mov'); return; }
+    if (!files.length) { aviso('Solo videos (.mp4, .webm, .mov), audios (.mp3, .ogg, .wav, .m4a) o imágenes (.gif, .png, .webp, .jpg)'); return; }
     cfg.videos = items.map(it => it.v);
-    let ultimo = null;
+    let ultimo = null; const nuevos = [];
     for (const f of files) {
       let nombre = f.name.replace(/[\\/:*?"<>|\u0000-\u001f]/g, '').replace(/^\.+/, '').slice(0, 120);
       if (!EXT.test(nombre)) continue;
       if (f.size > 500 * 1024 * 1024) { aviso(nombre + ' pesa más de 500 MB: no lo copio.', 6000); continue; }
-      try { await carpetaVideos.getFileHandle(nombre); if (!confirm('Ya hay un video llamado "' + nombre + '". ¿Reemplazarlo?')) continue; } catch {}
+      try { await carpetaVideos.getFileHandle(nombre); if (!confirm('Ya hay un archivo llamado "' + nombre + '". ¿Reemplazarlo?')) continue; } catch {}
       aviso('Copiando ' + nombre + '…', 60000);
       const w = await (await carpetaVideos.getFileHandle(nombre, { create: true })).createWritable();
       await w.write(f); await w.close();
-      ultimo = nombre;
+      ultimo = nombre; nuevos.push(nombre);
     }
     await cargarVideos();
+    if (typeof grupo === 'string') items.forEach(it => { if (nuevos.includes(it.archivo)) it.v.grupo = grupo; });
     if (ultimo) { sel = items.findIndex(it => it.archivo === ultimo); pintarLista(); pintarEditor(); }
     guardar();
-    aviso(files.length === 1 ? 'Video agregado. Revisá que el nombre sea igual al de la recompensa.' : 'Videos agregados.');
+    aviso(files.length === 1 ? 'Agregado. Revisá que el nombre sea igual al de la recompensa.' : 'Archivos agregados.');
   }
   $('subir').onchange = (e) => { agregar(e.target.files); e.target.value = ''; };
   let arrastres = 0;
-  addEventListener('dragenter', (e) => { e.preventDefault(); if (++arrastres === 1) document.body.classList.add('arrastrando'); });
-  addEventListener('dragleave', () => { if (--arrastres <= 0) { arrastres = 0; document.body.classList.remove('arrastrando'); } });
+  addEventListener('dragenter', (e) => { e.preventDefault(); if (arrastrandoItem) return; if (++arrastres === 1) document.body.classList.add('arrastrando'); });
+  addEventListener('dragleave', () => { if (arrastrandoItem) return; if (--arrastres <= 0) { arrastres = 0; document.body.classList.remove('arrastrando'); } });
   addEventListener('dragover', (e) => e.preventDefault());
   addEventListener('drop', (e) => {
     e.preventDefault(); arrastres = 0; document.body.classList.remove('arrastrando');
-    if (raiz) agregar(e.dataTransfer.files);
+    if (raiz && !arrastrandoItem && e.dataTransfer.files.length) agregar(e.dataTransfer.files);
   });
 
   // ---------- Ajustes generales ----------
@@ -514,10 +990,12 @@
     $('gCoinciden').value = cfg.siCoinciden || 'juntos';
     $('gAncho').value = cfg.porDefecto.ancho;
     $('gMax').value = cfg.maxALaVez || 4;
+    $('gEspera').value = cfg.maxEnEspera ?? 10;
     $('gHost').value = cfg.streamerbotHost; $('gPuerto').value = cfg.streamerbotPuerto; $('gClave').value = cfg.streamerbotClave || '';
   }
   $('gCoinciden').onchange = (e) => { cfg.siCoinciden = e.target.value; guardarPronto(); };
   $('gMax').oninput = (e) => { cfg.maxALaVez = Math.min(20, Math.max(1, Math.round(+e.target.value) || 4)); guardarPronto(); };
+  $('gEspera').oninput = (e) => { const n = Math.round(+e.target.value); cfg.maxEnEspera = Number.isFinite(n) ? Math.min(100, Math.max(0, n)) : 10; guardarPronto(); };
   $('gAncho').oninput = (e) => { cfg.porDefecto.ancho = +e.target.value || 400; guardarPronto(); };
   const reconectar = () => { guardarPronto(); clearTimeout(reconectar.t); reconectar.t = setTimeout(() => { if (ws) ws.close(); }, 800); };
   $('gHost').oninput = (e) => { cfg.streamerbotHost = e.target.value.trim(); reconectar(); };
@@ -532,7 +1010,10 @@
     const url = 'ws://' + (cfg.streamerbotHost || '127.0.0.1') + ':' + (cfg.streamerbotPuerto || 8080) + '/';
     estadoSB('conectando…');
     try { ws = new WebSocket(url); } catch { setTimeout(conectarSB, 5000); return; }
-    const sub = () => ws.send(JSON.stringify({ request: 'Subscribe', id: 'panel', events: { Twitch: ['RewardRedemption'] } }));
+    const sub = () => {
+      ws.send(JSON.stringify({ request: 'Subscribe', id: 'panel', events: { Twitch: ['RewardRedemption'] } }));
+      ws.send(JSON.stringify({ request: 'GetBroadcaster', id: 'canal' }));
+    };
     ws.onmessage = async (ev) => {
       let m; try { m = JSON.parse(ev.data); } catch { return; }
       if (m.request === 'Hello') {
@@ -542,6 +1023,10 @@
         } else sub();
       } else if (m.id === 'auth') { m.status === 'ok' ? sub() : estadoSB('clave incorrecta', 'error'); }
       else if (m.id === 'panel') estadoSB('conectado', 'ok');
+      else if (m.id === 'canal') {
+        const tw = m.platforms && m.platforms.twitch;
+        if (tw) canalDeSB(tw.broadcastUserName || tw.broadcastUser, tw.broadcastUserId);
+      }
       else if (m.event && m.event.type === 'RewardRedemption') {
         const d = m.data || {}; const t = (d.reward && d.reward.title) || d.rewardTitle || d.title;
         if (t) nuevoCanje(t, d.user_name || d.userName);
@@ -556,11 +1041,272 @@
     canjes.forEach(t => {
       const b = document.createElement('button'); b.className = 'chip';
       const tiene = items.some(it => it.v.activo !== false && normal(it.v.nombre) === normal(t));
-      b.textContent = (tiene ? '✓ ' : '') + t; b.title = tiene ? 'Ya tiene video' : 'Clic para asignarla al video elegido';
+      b.textContent = (tiene ? '✓ ' : '') + t; b.title = tiene ? 'Ya tiene archivo' : 'Clic para asignarla al archivo elegido';
       b.onclick = () => { const v = actual(); if (!v) return; v.nombre = t; pintarEditor(); pintarLista(); guardarPronto(); nuevoCanje(t); };
       c.appendChild(b);
     });
   }
+
+
+  // ---------- Lluvia de emotes 7TV ----------
+  const limpiarCanal = (c) => String(c || '').toLowerCase().replace(/^.*twitch\.tv\//, '').replace(/[^a-z0-9_]/g, '').slice(0, 25);
+  let sbCanal = '', sbId = '', emotesPanel = [], emotesDeCanal = null;
+  const L = () => cfg.lluvia;
+  function pintarLluvia() {
+    const l = L();
+    $('lActiva').checked = l.activa !== false; $('lCanal').value = l.canal || ''; $('lCanal').placeholder = sbCanal || 'Se completa solo desde Streamer.bot';
+    $('lUmbral').value = l.umbral; $('lVentana').value = l.ventana; $('lCooldown').value = l.cooldown;
+    $('lCantidad').value = l.cantidad; $('lTamano').value = l.tamano; $('lDuracion').value = l.duracion;
+    $('lGlobales').checked = l.globales !== false; $('lTwitch').checked = l.twitch === true;
+    textosLluvia();
+  }
+  function textosLluvia() {
+    const l = L();
+    $('tUmbral').textContent = l.umbral + ' veces'; $('tVentana').textContent = l.ventana + ' s'; $('tCooldown').textContent = l.cooldown + ' s';
+    $('tCantidad').textContent = l.cantidad; $('tTamano').textContent = l.tamano + ' px'; $('tLDur').textContent = l.duracion + ' s';
+    $('lResumen').textContent = 'Llueve cuando ' + l.umbral + ' mensajes con el mismo emote llegan en ' + l.ventana + ' segundos. ' +
+      (l.cooldown ? 'Después espera ' + l.cooldown + ' s antes de otra lluvia.' : 'Sin espera entre lluvias.');
+  }
+  const nLluvia = (k, min, max) => (e) => { L()[k] = Math.min(max, Math.max(min, +e.target.value)); textosLluvia(); guardarPronto(); };
+  $('lUmbral').oninput = nLluvia('umbral', 2, 100); $('lVentana').oninput = nLluvia('ventana', 2, 120); $('lCooldown').oninput = nLluvia('cooldown', 0, 600);
+  $('lCantidad').oninput = nLluvia('cantidad', 5, 200); $('lTamano').oninput = nLluvia('tamano', 16, 300); $('lDuracion').oninput = nLluvia('duracion', 2, 30);
+  $('lActiva').onchange = (e) => { L().activa = e.target.checked; guardarPronto(); };
+  $('lTwitch').onchange = (e) => { L().twitch = e.target.checked; guardarPronto(); };
+  $('lGlobales').onchange = (e) => { L().globales = e.target.checked; guardarPronto(); emotesDeCanal = null; cargarEmotesPanel(); };
+  $('lCanal').oninput = (e) => {
+    L().canal = limpiarCanal(e.target.value); guardarPronto();
+    clearTimeout(cargarEmotesPanel.t); cargarEmotesPanel.t = setTimeout(cargarEmotesPanel, 900);
+  };
+  function canalDeSB(nombre, id) {
+    sbCanal = limpiarCanal(nombre); sbId = String(id || '').replace(/\D/g, '');
+    $('lCanal').placeholder = sbCanal || 'Se completa solo desde Streamer.bot';
+    if (!L().canal && sbCanal) { L().canal = sbCanal; $('lCanal').value = sbCanal; guardarPronto(); }
+    cargarEmotesPanel();
+  }
+  // Averigua el número de usuario de un canal con una conexión anónima al chat (sin contraseña)
+  function idDeCanal(canal) {
+    return new Promise((ok) => {
+      let ws; try { ws = new WebSocket('wss://irc-ws.chat.twitch.tv:443'); } catch { ok(''); return; }
+      const fin = (id) => { clearTimeout(t); try { ws.close(); } catch {} ok(id); };
+      const t = setTimeout(() => fin(''), 8000);
+      ws.onopen = () => { ws.send('CAP REQ :twitch.tv/tags twitch.tv/commands'); ws.send('PASS SCHMOOPIIE'); ws.send('NICK justinfan' + Math.floor(10000 + Math.random() * 80000)); ws.send('JOIN #' + canal); };
+      ws.onmessage = (ev) => { const m = String(ev.data).match(/room-id=(\d+)[^ ]* :tmi\.twitch\.tv ROOMSTATE/); if (m) fin(m[1]); };
+      ws.onerror = () => fin('');
+    });
+  }
+  function url7tv(e) {
+    const host = (e.data && e.data.host) || {};
+    const base = host.url ? 'https:' + host.url.replace(/^https?:/, '') : 'https://cdn.7tv.app/emote/' + e.id;
+    const files = Array.isArray(host.files) ? host.files.map(f => f.name) : [];
+    const a = ['2x.webp', '3x.webp', '1x.webp', '2x.gif', '2x.png'].find(f => files.includes(f)) || '2x.webp';
+    const u = base + '/' + a;
+    return /^https:\/\/cdn\.7tv\.app\/[\w\-./]+$/.test(u) ? u : '';
+  }
+  async function cargarEmotesPanel() {
+    const canal = L().canal || sbCanal;
+    if (!canal) { $('lEstado').textContent = 'Escribí el nombre de tu canal (o conectá Streamer.bot).'; return; }
+    const clave = canal + '|' + (L().globales !== false);
+    if (emotesDeCanal === clave) return;
+    emotesDeCanal = clave;
+    $('lEstado').textContent = 'Buscando los emotes de ' + canal + '…';
+    const id = canal === sbCanal && sbId ? sbId : await idDeCanal(canal);
+    if (emotesDeCanal !== clave) return;
+    if (!id) { $('lEstado').textContent = 'No encontré el canal "' + canal + '" en Twitch.'; emotesDeCanal = null; return; }
+    const pedir = (u) => fetch(u).then(r => r.ok ? r.json() : null).catch(() => null);
+    const [usuario, global] = await Promise.all([pedir('https://7tv.io/v3/users/twitch/' + id), L().globales !== false ? pedir('https://7tv.io/v3/emote-sets/global') : null]);
+    if (emotesDeCanal !== clave) return;
+    const delCanal = (usuario && usuario.emote_set && Array.isArray(usuario.emote_set.emotes)) ? usuario.emote_set.emotes : [];
+    const globales = (global && Array.isArray(global.emotes)) ? global.emotes : [];
+    emotesPanel = delCanal.concat(globales).map(e => ({ nombre: String(e.name || '').slice(0, 100), url: url7tv(e), canal: delCanal.includes(e) })).filter(e => e.nombre && e.url);
+    $('lEstado').textContent = usuario ? delCanal.length + ' emotes de tu canal' + (globales.length ? ' + ' + globales.length + ' globales' : '') + ' ✓'
+      : 'Tu canal no tiene emotes en 7TV' + (globales.length ? ' (se usan los ' + globales.length + ' globales)' : '') + '.';
+    const g = $('emotes'); g.innerHTML = '';
+    emotesPanel.forEach(e => {
+      const b = document.createElement('button'); b.title = e.nombre + (e.canal ? '' : ' (global)');
+      const i = document.createElement('img'); i.loading = 'lazy'; i.alt = e.nombre; i.src = e.url;
+      b.appendChild(i); b.onclick = () => probarLluvia(e); g.appendChild(b);
+    });
+  }
+  async function probarLluvia(e) {
+    e = e || emotesPanel.find(x => x.canal) || emotesPanel[0];
+    if (!e) { aviso('Todavía no hay emotes cargados. Revisá el canal.'); return; }
+    if (L().activa === false) { aviso('La lluvia está desactivada. Activala para probarla.'); return; }
+    await guardar(null, { emote: e.nombre, url: e.url, t: Date.now() });
+    aviso('Lluvia de ' + e.nombre + ' enviada. En 2 segundos tiene que verse en OBS.');
+  }
+  $('lProbar').onclick = () => probarLluvia();
+
+
+  // ---------- Alertas ----------
+  let carpetaAlertas = null, archivosAlerta = [], tipoSel = 'follow';
+  const AL = () => cfg.alertas;
+  async function cargarArchivosAlerta() {
+    archivosAlerta.forEach(a => URL.revokeObjectURL(a.url));
+    archivosAlerta = [];
+    try {
+      for await (const [nombre, h] of carpetaAlertas.entries()) if (h.kind === 'file' && EXT.test(nombre)) archivosAlerta.push({ archivo: nombre, tipo: tipo(nombre), url: URL.createObjectURL(await h.getFile()) });
+    } catch {}
+    archivosAlerta.sort((a, b) => a.archivo.localeCompare(b.archivo));
+  }
+  function pintarAlertas() {
+    $('aActiva').checked = AL().activa; $('aPausar').checked = AL().pausarRecompensas;
+    const ch = $('aTipos'); ch.innerHTML = '';
+    Object.keys(TIPOS_ALERTA).forEach(k => {
+      const b = document.createElement('button'); b.className = 'chip' + (k === tipoSel ? ' on' : '');
+      const i = document.createElement('i'); if (!AL().tipos[k].activa) i.className = 'off';
+      b.append(i, TIPOS_ALERTA[k].nombre);
+      b.onclick = () => { tipoSel = k; pintarAlertas(); verAlerta(true); };
+      ch.appendChild(b);
+    });
+    const t = AL().tipos[tipoSel], d = TIPOS_ALERTA[tipoSel];
+    $('aTipoNombre').textContent = 'Alerta de ' + d.nombre.toLowerCase() + ' activada';
+    $('aTipoActiva').checked = t.activa; $('aTexto').value = t.texto;
+    $('aVars').textContent = 'Podés usar: ' + d.vars.map(v => '{' + v + '}').join(' ') + '. Lo que va entre llaves sale con el color del nombre.';
+    $('aFilaMsj').hidden = !d.msj; $('aMsj').checked = t.mostrarMensaje; $('aLeer').checked = t.leer;
+    $('aFilaMin').hidden = !d.min; $('aMinTit').textContent = d.min || ''; $('aMin').value = t.minimo;
+    $('aMin').step = tipoSel === 'donacion' ? '0.5' : '1';
+    const opciones = (sel, lista, extra, valor) => {
+      sel.innerHTML = '';
+      extra.concat(lista.map(a => [a.archivo, a.archivo])).forEach(([v, txt]) => { const o = document.createElement('option'); o.value = v; o.textContent = txt; sel.appendChild(o); });
+      sel.value = [...sel.options].some(o => o.value === valor) ? valor : extra[0][0];
+    };
+    opciones($('aArchivo'), archivosAlerta.filter(a => a.tipo !== 'audio'), [['', 'Ninguno (solo texto)']], t.archivo);
+    opciones($('aSonido'), archivosAlerta.filter(a => a.tipo === 'audio'), [['incluido', 'Sonido incluido (campanita)'], ['', 'Sin sonido']], t.sonido);
+    $('aVol').value = Math.round(t.volumen * 100); $('aDur').value = t.duracion;
+    const E = AL().estilo;
+    const fs = $('eFuente');
+    if (!fs.options.length) Object.keys(FUENTES).forEach(f => { const o = document.createElement('option'); o.value = o.textContent = f; fs.appendChild(o); });
+    const an = $('eAnim');
+    if (!an.options.length) Object.entries(ANIMACIONES).forEach(([v, txt]) => { const o = document.createElement('option'); o.value = v; o.textContent = txt; an.appendChild(o); });
+    fs.value = E.fuente; $('eTam').value = E.tamano; $('eLugar').value = E.lugar; $('eTexto').value = E.colorTexto; $('eResaltado').value = E.colorResaltado;
+    $('eFondo').value = E.colorFondo; $('eOpac').value = Math.round(E.opacidadFondo * 100); $('eRed').value = E.redondeo; $('eAncho').value = E.ancho;
+    an.value = E.animacion; $('eDiseno').value = E.diseno; $('eImg').value = E.tamanoImagen;
+    textosAlertas();
+  }
+  function textosAlertas() {
+    const t = AL().tipos[tipoSel], E = AL().estilo, conMedia = !!t.archivo || (t.sonido && t.sonido !== 'incluido');
+    $('atVol').textContent = Math.round(t.volumen * 100) + ' %';
+    $('atDur').textContent = t.duracion > 0 ? t.duracion + ' s' : (conMedia ? 'lo que dure' : '6 s');
+    $('etTam').textContent = E.tamano + ' px'; $('etOpac').textContent = Math.round(E.opacidadFondo * 100) + ' %';
+    $('etRed').textContent = E.redondeo + ' px'; $('etAncho').textContent = E.ancho + ' px'; $('etImg').textContent = E.tamanoImagen + ' px';
+  }
+  // Vista previa: el cartel se dibuja en una pantalla de 1920×1080 achicada
+  function escalarLienzo() { const w = $('aPantalla').clientWidth; if (w) $('aLienzo').style.transform = 'scale(' + w / 1920 + ')'; }
+  new ResizeObserver(escalarLienzo).observe($('aPantalla'));
+  let dibujo = 0;
+  async function verAlerta(animar) {
+    if (!cfg || !AL()) return;
+    const n = ++dibujo, E = AL().estilo, t = AL().tipos[tipoSel];
+    const a = archivosAlerta.find(x => x.archivo === t.archivo && x.tipo !== 'audio');
+    let media = null;
+    if (a) {
+      media = await new Promise(ok => {
+        if (a.tipo === 'imagen') { const i = new Image(); i.onload = () => ok(i); i.onerror = () => ok(null); i.src = a.url; }
+        else { const v = document.createElement('video'); v.muted = true; v.loop = true; v.playsInline = true; v.onloadeddata = () => { v.play().catch(() => {}); ok(v); }; v.onerror = () => ok(null); v.src = a.url; }
+      });
+    }
+    await cargarFuente(E.fuente);
+    if (n !== dibujo) return;
+    const lz = $('aLienzo'); lz.innerHTML = '';
+    const el = armarAlerta(E, t, PRUEBA_ALERTA[tipoSel], media, 1);
+    lz.appendChild(el); ponerAlerta(el, E, 1920, 1080, 1); escalarLienzo();
+    if (animar) animarAlerta(el, E, 1, false);
+  }
+  let tVer;
+  const cambioAlerta = (animar) => { textosAlertas(); guardarPronto(); clearTimeout(tVer); tVer = setTimeout(() => verAlerta(animar), 60); };
+  const TA = () => AL().tipos[tipoSel], EA = () => AL().estilo;
+  $('aActiva').onchange = (e) => { AL().activa = e.target.checked; guardarPronto(); };
+  $('aPausar').onchange = (e) => { AL().pausarRecompensas = e.target.checked; guardarPronto(); };
+  $('aTipoActiva').onchange = (e) => { TA().activa = e.target.checked; pintarAlertas(); guardarPronto(); };
+  $('aTexto').oninput = (e) => { TA().texto = e.target.value.slice(0, 200) || TIPOS_ALERTA[tipoSel].texto; cambioAlerta(); };
+  $('aMsj').onchange = (e) => { TA().mostrarMensaje = e.target.checked; cambioAlerta(); };
+  $('aLeer').onchange = (e) => { TA().leer = e.target.checked; guardarPronto(); };
+  $('aArchivo').onchange = (e) => { TA().archivo = e.target.value; cambioAlerta(); };
+  $('aSonido').onchange = (e) => { TA().sonido = e.target.value; cambioAlerta(); escucharAlerta(); };
+  $('aVol').oninput = (e) => { TA().volumen = +e.target.value / 100; textosAlertas(); guardarPronto(); };
+  $('aVol').onchange = () => escucharAlerta();
+  $('aDur').oninput = (e) => { TA().duracion = +e.target.value; textosAlertas(); guardarPronto(); };
+  $('aMin').oninput = (e) => { const n = +e.target.value; TA().minimo = Number.isFinite(n) ? Math.max(0, n) : 0; guardarPronto(); };
+  const nE = (k, div = 1) => (e) => { EA()[k] = +e.target.value / div; cambioAlerta(); };
+  $('eTam').oninput = nE('tamano'); $('eOpac').oninput = nE('opacidadFondo', 100); $('eRed').oninput = nE('redondeo');
+  $('eAncho').oninput = nE('ancho'); $('eImg').oninput = nE('tamanoImagen');
+  const sE = (k) => (e) => { EA()[k] = e.target.value; cambioAlerta(k === 'animacion' || k === 'lugar'); };
+  $('eFuente').onchange = sE('fuente'); $('eLugar').onchange = sE('lugar'); $('eAnim').onchange = sE('animacion'); $('eDiseno').onchange = sE('diseno');
+  $('eTexto').oninput = sE('colorTexto'); $('eResaltado').oninput = sE('colorResaltado'); $('eFondo').oninput = sE('colorFondo');
+  $('eLimpio').onclick = () => { AL().estilo = Object.assign({}, ESTILO_LIMPIO); pintarAlertas(); cambioAlerta(true); aviso('Listo: volviste al estilo limpio.'); };
+  $('aVer').onclick = () => { verAlerta(true); escucharAlerta(); };
+  let audioPrueba = null;
+  function escucharAlerta() {
+    const t = TA();
+    if (audioPrueba) { audioPrueba.pause(); audioPrueba = null; }
+    if (t.sonido === 'incluido') { campanita(tipoSel, t.volumen); return; }
+    const a = archivosAlerta.find(x => x.archivo === t.sonido);
+    if (a) { audioPrueba = new Audio(a.url); audioPrueba.volume = t.volumen; audioPrueba.play().catch(() => {}); setTimeout(() => { if (audioPrueba) audioPrueba.pause(); }, 6000); }
+  }
+  $('aProbar').onclick = async () => {
+    if (!AL().tipos[tipoSel].activa) { aviso('Esta alerta está desactivada. Activala para probarla.'); return; }
+    await guardar(null, null, null, { tipo: tipoSel, t: Date.now() });
+    aviso('Enviada. En 2 segundos tiene que salir en OBS.');
+  };
+  // Archivos propios de las alertas: se copian a la carpeta "alertas" (separada de las recompensas)
+  async function agregarAlerta(files) {
+    const f = [...files].find(x => EXT.test(x.name));
+    if (!f) { aviso('Solo gifs, imágenes, videos (.mp4, .webm) o sonidos (.mp3, .ogg, .wav, .m4a)'); return; }
+    const nombre = f.name.replace(/[\\/:*?"<>|\u0000-\u001f]/g, '').replace(/^\.+/, '').slice(0, 120);
+    if (!EXT.test(nombre)) return;
+    if (f.size > 200 * 1024 * 1024) { aviso(nombre + ' pesa más de 200 MB: no lo copio.', 6000); return; }
+    aviso('Copiando ' + nombre + '…', 60000);
+    try {
+      const w = await (await carpetaAlertas.getFileHandle(nombre, { create: true })).createWritable();
+      await w.write(f); await w.close();
+    } catch (e) { aviso('No se pudo copiar: ' + e.message, 6000); return; }
+    await cargarArchivosAlerta();
+    if (tipo(nombre) === 'audio') TA().sonido = nombre; else TA().archivo = nombre;
+    pintarAlertas(); cambioAlerta(true);
+    aviso('Listo: ' + nombre + ' quedó en la alerta de ' + TIPOS_ALERTA[tipoSel].nombre.toLowerCase() + '.');
+  }
+  $('aSubir').onchange = (e) => { agregarAlerta(e.target.files); e.target.value = ''; };
+  $('aSoltar').addEventListener('dragover', (e) => { e.preventDefault(); $('aSoltar').classList.add('encima'); });
+  $('aSoltar').addEventListener('dragleave', () => $('aSoltar').classList.remove('encima'));
+  $('aSoltar').addEventListener('drop', (e) => {
+    e.preventDefault(); e.stopPropagation();
+    $('aSoltar').classList.remove('encima'); arrastres = 0; document.body.classList.remove('arrastrando');
+    if (raiz && e.dataTransfer.files.length) agregarAlerta(e.dataTransfer.files);
+  });
+
+  // ---------- Lectura en voz (!tts) ----------
+  const TT = () => cfg.tts;
+  function pintarTTS() {
+    const t = TT();
+    $('tActiva').checked = t.activa !== false; $('tComando').value = t.comando; $('tQuien').value = t.quien; $('tIdioma').value = $('tIdioma').querySelector('option[value="' + t.idioma + '"]') ? t.idioma : ({ 'pt-BR': 'br' }[t.idioma] || 'es'); $('tVocesChat').checked = t.vocesChat !== false; $('tEfecto').value = t.efecto || '';
+    $('tMax').value = t.maxLetras; $('tEspera').value = t.espera; $('tVol').value = Math.round(t.volumen * 100); $('tVel').value = Math.round(t.velocidad * 100);
+    $('tRecompensa').value = t.recompensa || ''; $('tNombre').checked = t.decirNombre !== false;
+    textosTTS();
+  }
+  function textosTTS() {
+    const t = TT();
+    $('ttMax').textContent = t.maxLetras + ' letras'; $('ttEspera').textContent = t.espera + ' s';
+    $('ttVol').textContent = Math.round(t.volumen * 100) + ' %'; $('ttVel').textContent = Math.round(t.velocidad * 100) + ' %';
+    $('tEjemplo').textContent = (t.comando || '!tts') + ' hola';
+    const codigos = [...$('tIdioma').options].map(o => o.value).join(', ');
+    $('tAyudaVoces').textContent = t.vocesChat !== false ? 'Para elegir otra voz, el chat pone el código antes del texto: ' + (t.comando || '!tts') + ' uk hello. Voces: ' + codigos + '. Efectos: ardilla, monstruo, normal (' + (t.comando || '!tts') + ' ardilla hola).' : '';
+  }
+  const nTTS = (k, min, max, div = 1) => (e) => { TT()[k] = Math.min(max, Math.max(min, +e.target.value / div)); textosTTS(); guardarPronto(); };
+  $('tMax').oninput = nTTS('maxLetras', 10, 500); $('tEspera').oninput = nTTS('espera', 0, 600);
+  $('tVol').oninput = nTTS('volumen', 0, 1, 100); $('tVel').oninput = nTTS('velocidad', 0.5, 2, 100);
+  $('tActiva').onchange = (e) => { TT().activa = e.target.checked; guardarPronto(); };
+  $('tNombre').onchange = (e) => { TT().decirNombre = e.target.checked; guardarPronto(); };
+  $('tQuien').onchange = (e) => { TT().quien = e.target.value; guardarPronto(); };
+  $('tIdioma').onchange = (e) => { TT().idioma = e.target.value; guardarPronto(); };
+  $('tEfecto').onchange = (e) => { TT().efecto = e.target.value; guardarPronto(); };
+  $('tVocesChat').onchange = (e) => { TT().vocesChat = e.target.checked; textosTTS(); guardarPronto(); };
+  $('tComando').oninput = (e) => { TT().comando = e.target.value.trim().toLowerCase().replace(/\s/g, '').slice(0, 30); textosTTS(); guardarPronto(); };
+  $('tRecompensa').oninput = (e) => { TT().recompensa = e.target.value.trim().slice(0, 100); guardarPronto(); };
+  $('tProbar').onclick = async () => {
+    if (TT().activa === false) { aviso('El TTS está desactivado. Activalo para probarlo.'); return; }
+    await guardar(null, null, { texto: $('tPrueba').value.slice(0, 300), t: Date.now() });
+    aviso('Enviado. En 2 segundos se tiene que escuchar en OBS.');
+  };
 
   // ---------- Inicio ----------
   if (!window.showDirectoryPicker) { $('elegir').hidden = true; $('noSoportado').hidden = false; }
